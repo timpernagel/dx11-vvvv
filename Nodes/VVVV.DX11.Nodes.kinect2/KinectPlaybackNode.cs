@@ -37,26 +37,23 @@ namespace VVVV.MSKinect.Nodes
         [Input("Loop Count", IsSingle = true)]
         ISpread<int> FLoopCount;
 
-        [Input("DoSeek", IsBang = true, IsSingle = true)]
-        ISpread<bool> FDoSeek;
-
         [Input("DoStep", IsBang = true, IsSingle = true)]
         ISpread<bool> FDoStep;
 
-        [Input("SeekTime", IsSingle = true)]
-        ISpread<int> FSeekTime;
+        [Input("Reset", IsBang = true, IsSingle = true)]
+        ISpread<bool> FReset;
 
         [Output("Duration")]
         ISpread<float> FDuration;
 
-        [Output("Millisec")]
-        ISpread<float> FMillisec;
+        [Output("Min")]
+        ISpread<float> FMin;
 
         [Output("Sec")]
         ISpread<float> FSec;
 
-        [Output("Min")]
-        ISpread<float> FMin;
+        [Output("Millisec")]
+        ISpread<float> FMillisec;
 
         [Output("State")]
         ISpread<string> FState;
@@ -71,7 +68,6 @@ namespace VVVV.MSKinect.Nodes
         private KStudioPlayback playback;
 
         private bool isPlaying = false;
-        private bool seekModeStarted = false;
 
         /// <summary> Delegate for placing a job with a single string argument onto the Dispatcher </summary>
         // <param name="arg">string argument</param>
@@ -80,7 +76,7 @@ namespace VVVV.MSKinect.Nodes
         public void Evaluate(int SpreadMax)
         {
 
-            // STANDARD PLAYING
+            // ------------------------------------------------ STANDARD PLAYBACK
 
             if (this.FPlay[0] && !FIsPlaying[0])
             {
@@ -108,30 +104,40 @@ namespace VVVV.MSKinect.Nodes
             {
             }
 
-            // ------------------------ SEEKING
+            // ------------------------------------------------ SEEKING
 
-            if (this.FDoSeek[0])
-            {
-                FLogger.Log(LogType.Debug, "Do Seek");
-
-                //Dispose();
-
-                OneArgDelegate playback = new OneArgDelegate(SeekedPlayback);
-                playback.BeginInvoke(@FFile[0], null, null);
-                
-            }
-            else
-            {
-            }
             
             if (this.FDoStep[0])
             {
-                playback.StepOnce();
+                if (!isPlaying)
+                {
+                    OneArgDelegate playback = new OneArgDelegate(SeekedPlayback);
+                    playback.BeginInvoke(@FFile[0], null, null);
+                }
+                else
+                {
+                    playback.StepOnce();
+                }
+
             }
             else
+            { }
+
+            // ------------------------------------------------ RESET
+
+
+            if (this.FReset[0])
             {
+                if (isPlaying)
+                {
+
+                    Dispose();
+
+                }
+                else { }
             }
-            
+            else
+            { }
 
         }
         public void UpdateTimeOutputs()
@@ -142,16 +148,6 @@ namespace VVVV.MSKinect.Nodes
             FSec[0] = playback.CurrentRelativeTime.Seconds;
             FMin[0] = playback.CurrentRelativeTime.Minutes;
             FState[0] = playback.State.ToString();
-
-        }
-
-        public void Dispose()
-        {
-            FLogger.Log(LogType.Debug, "DisposeFunction triggered");
-            //playback.Dispose();
-           // client.Dispose();
-            playback = null;
-            client = null;
 
         }
 
@@ -206,15 +202,15 @@ namespace VVVV.MSKinect.Nodes
 
             playback = client.CreatePlayback(filePath);
             playback.StartPaused();
-            
+            //playback.StepOnce();
+
+            isPlaying = true;
+            FState[0] = playback.State.ToString();
+
             //TimeSpan seekTo = new TimeSpan(FSeekTime[0]);
             //TimeSpan seekTo = new TimeSpan(0, 0, 1, 0, 0);
             //playback.Mode = KStudioPlaybackMode.TimingDisabled;
             //playback.SeekByRelativeTime(seekTo);
-
-            playback.StepOnce();
-            FState[0] = playback.State.ToString();
-
             //FIsPlaying[0] = true;
             //FDuration[0] = playback.Duration.Milliseconds;
            /* 
@@ -245,6 +241,16 @@ namespace VVVV.MSKinect.Nodes
             
             client.DisconnectFromService();
             Dispose();*/
+
+        }
+
+        public void Dispose()
+        {
+            FLogger.Log(LogType.Debug, "DisposeFunction triggered");
+            playback = null;
+            client = null;
+            //playback.Dispose();
+           // client.Dispose();
 
         }
 
