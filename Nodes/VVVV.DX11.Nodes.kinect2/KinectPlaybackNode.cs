@@ -28,17 +28,17 @@ namespace VVVV.MSKinect.Nodes
         [Input("XEF-File", DefaultString = "", StringType = StringType.Filename)]
         ISpread<string> FFile;
 
-        [Input("Play", IsBang = true, IsSingle = true)]
-        ISpread<bool> FPlay;
-
-        [Input("Stop", IsBang = true, IsSingle = true)]
-        ISpread<bool> FStop;
-
-        [Input("Loop Count", IsSingle = true)]
-        ISpread<int> FLoopCount;
+        [Input("LoadClip", IsBang = true, IsSingle = true)]
+        ISpread<bool> FLoadClip;
 
         [Input("DoStep", IsBang = true, IsSingle = true)]
         ISpread<bool> FDoStep;
+
+        [Input("Frame", IsSingle = true)]
+        ISpread<int> FFrame;
+
+        [Input("Seek", IsBang = true, IsSingle = true)]
+        ISpread<bool> FSeek;
 
         [Input("Reset", IsBang = true, IsSingle = true)]
         ISpread<bool> FReset;
@@ -58,8 +58,8 @@ namespace VVVV.MSKinect.Nodes
         [Output("State")]
         ISpread<string> FState;
 
-        [Output("IsPlaying", IsSingle = true)]
-        ISpread<bool> FIsPlaying;
+        [Output("IsConnected")]
+        ISpread<bool> FIsConnected;
 
         [Import()]
         public ILogger FLogger;
@@ -68,7 +68,11 @@ namespace VVVV.MSKinect.Nodes
         private KStudioPlayback playback;
 
         private bool isPlaying = false;
+        private bool init = false;
+        private bool isConnected = false;
 
+        /// <summary> Delegate for placing a job with no arguments onto the Dispatcher </summary>
+        private delegate void NoArgDelegate();
         /// <summary> Delegate for placing a job with a single string argument onto the Dispatcher </summary>
         // <param name="arg">string argument</param>
         private delegate void OneArgDelegate(string arg);
@@ -76,42 +80,23 @@ namespace VVVV.MSKinect.Nodes
         public void Evaluate(int SpreadMax)
         {
 
-            // ------------------------------------------------ STANDARD PLAYBACK
-
-            if (this.FPlay[0] && !FIsPlaying[0])
+            if (!init && FLoadClip[0])
             {
-                FLogger.Log(LogType.Debug, "Start Playback");
-
-                Dispose();
-
-                OneArgDelegate playback = new OneArgDelegate(StandardPlayback);
+                OneArgDelegate playback = new OneArgDelegate(LoadClip);
                 playback.BeginInvoke(@FFile[0], null, null);
-            }
-            else
-            {
-            }
 
-            if (this.FStop[0])
-            {
-                FLogger.Log(LogType.Debug, "Stop Playback");
-
-                if (FIsPlaying[0])
-                {
-                    playback.Stop();
-                }
+                init = true;
             }
-            else
-            {
-            }
-
-            // ------------------------------------------------ SEEKING
 
             
+            // ------------------------------------------------ SEEKING
+
+
             if (this.FDoStep[0])
             {
                 if (!isPlaying)
                 {
-                    OneArgDelegate playback = new OneArgDelegate(SeekedPlayback);
+                    OneArgDelegate playback = new OneArgDelegate(LoadClip);
                     playback.BeginInvoke(@FFile[0], null, null);
                 }
                 else
@@ -128,7 +113,8 @@ namespace VVVV.MSKinect.Nodes
 
             if (this.FReset[0])
             {
-                if (isPlaying)
+                if (isPlaying) // das is noch nicht so gut!
+               // if (playback.State == KStudioPlaybackState.Playing || playback.State == KStudioPlaybackState.Paused) // das is noch nicht so gut!
                 {
 
                     Dispose();
@@ -140,7 +126,7 @@ namespace VVVV.MSKinect.Nodes
             { }
 
         }
-        public void UpdateTimeOutputs()
+        public void UpdateOutputs()
         {
             // FLogger.Log(LogType.Debug, "DisposeFunction triggered");
             // FDuration[0] = playback.Duration.Milliseconds;
@@ -148,7 +134,15 @@ namespace VVVV.MSKinect.Nodes
             FSec[0] = playback.CurrentRelativeTime.Seconds;
             FMin[0] = playback.CurrentRelativeTime.Minutes;
             FState[0] = playback.State.ToString();
+            FIsConnected[0] = client.IsServiceConnected;
 
+        }
+
+        public void Init()
+        {
+            FLogger.Log(LogType.Debug, "INIT!");
+            OneArgDelegate playback = new OneArgDelegate(StandardPlayback);
+            playback.BeginInvoke(@FFile[0], null, null);
         }
 
         public void StandardPlayback(string filePath)
@@ -158,17 +152,24 @@ namespace VVVV.MSKinect.Nodes
             client.ConnectToService();
 
             playback = client.CreatePlayback(filePath);
-            playback.LoopCount = Convert.ToUInt16(FLoopCount[0]);
+           // playback.LoopCount = Convert.ToUInt16(FLoopCount[0]);
+
+
+           // TimeSpan seekTo = new TimeSpan(0, 0, 0, 5, 0);
+
+           // playback.AddPausePointByRelativeTime(seekTo);
+
+
 
             playback.Start();
-            FIsPlaying[0] = true;
+            isPlaying = true;
             FDuration[0] = playback.Duration.Milliseconds;
 
             while (playback.State == KStudioPlaybackState.Playing)
             {
-              //  FLogger.Log(LogType.Debug, "IsPlaying");
+                //  FLogger.Log(LogType.Debug, "IsPlaying");
                 // System.Threading.Thread.Sleep(500);
-                UpdateTimeOutputs();
+                UpdateOutputs();
             }
 
             if (playback.State == KStudioPlaybackState.Error)
@@ -181,10 +182,10 @@ namespace VVVV.MSKinect.Nodes
             {
                 FLogger.Log(LogType.Debug, "Playback Stopped");
 
-                if (FIsPlaying[0]) 
+                if (isPlaying)
                 {
                     Dispose();
-                    FIsPlaying[0] = false; 
+                    isPlaying = false;
                 }
 
             }
@@ -194,18 +195,35 @@ namespace VVVV.MSKinect.Nodes
 
         }
 
-        public void SeekedPlayback(string filePath)
+        public void LoadClip(string filePath)
         {
-
             client = KStudio.CreateClient();
             client.ConnectToService();
 
             playback = client.CreatePlayback(filePath);
+            isConnected = true;
             playback.StartPaused();
             //playback.StepOnce();
 
             isPlaying = true;
             FState[0] = playback.State.ToString();
+            //TimeSpan seekTo = new TimeSpan(0, 0, 1, 0, 0);
+            
+            while (client.IsServiceConnected)
+            {
+                UpdateOutputs();
+            }
+
+            // playback.SeekByRelativeTime(seekTo);
+            // playback.StartRelativeTime.ToString();
+            //FDuration[0]  = playback.GetHashCode.
+           // playback.SeekByRelativeTime(seekTo);
+
+            // playback.AddPausePointByRelativeTime();
+
+
+            //KStudioPlaybackState.Busy
+            //KStudioPlaybackState.Idle
 
             //TimeSpan seekTo = new TimeSpan(FSeekTime[0]);
             //TimeSpan seekTo = new TimeSpan(0, 0, 1, 0, 0);
@@ -213,13 +231,13 @@ namespace VVVV.MSKinect.Nodes
             //playback.SeekByRelativeTime(seekTo);
             //FIsPlaying[0] = true;
             //FDuration[0] = playback.Duration.Milliseconds;
-           /* 
-            while (playback.State == KStudioPlaybackState.Playing)
-            {
-                UpdateTimeOutputs();
-                //  FLogger.Log(LogType.Debug, "IsPlaying");
-                // System.Threading.Thread.Sleep(500);
-            }*/
+            /* 
+             while (playback.State == KStudioPlaybackState.Playing)
+             {
+                 UpdateTimeOutputs();
+                 //  FLogger.Log(LogType.Debug, "IsPlaying");
+                 // System.Threading.Thread.Sleep(500);
+             }*/
             /*
             if (playback.State == KStudioPlaybackState.Error)
             {
@@ -247,10 +265,20 @@ namespace VVVV.MSKinect.Nodes
         public void Dispose()
         {
             FLogger.Log(LogType.Debug, "DisposeFunction triggered");
+            if(isConnected)
+                client.DisconnectFromService();
+
+            isConnected = false;
+            isPlaying = false;
+            init = false;
+
+            //UpdateOutputs();
+            
             playback = null;
             client = null;
+
             //playback.Dispose();
-           // client.Dispose();
+            // client.Dispose();
 
         }
 
