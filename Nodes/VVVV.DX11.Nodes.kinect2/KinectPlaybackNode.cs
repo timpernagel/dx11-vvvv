@@ -10,27 +10,20 @@ using Microsoft.Kinect;
 using Microsoft.Kinect.Tools;
 
 using VVVV.Core.Logging;
-using VVVV.PluginInterfaces.V1;
+//using VVVV.PluginInterfaces.V1;
 using System.ComponentModel.Composition;
 
 namespace VVVV.MSKinect.Nodes
 {
-    [PluginInfo(Name = "Kinect2 Playback", 
-	            Category = "Devices", 
-	            Version = "Microsoft", 
-	            Author = "timpernagel", 
-	            Tags = "DX11",
-	            Help = "Playback of XEF-Files")]
+    [PluginInfo(Name = "Kinect2 Playback",
+                Category = "Devices",
+                Version = "Microsoft",
+                Author = "timpernagel",
+                Tags = "DX11",
+                Help = "Playback of XEF-Files")]
 
     public class KinectPlaybackNode : IPluginEvaluate, IDisposable
     {
-        /*[Input("Index", IsSingle = true)]
-        IDiffSpread<int> FInIndex;*/
-
-        
-
-        //[Input("Enable Color", IsSingle = true, DefaultValue = 1)]
-        //IDiffSpread<bool> FInEnableColor;
 
         [Input("XEF-File", DefaultString = "", StringType = StringType.Filename)]
         ISpread<string> FFile;
@@ -38,96 +31,220 @@ namespace VVVV.MSKinect.Nodes
         [Input("Play", IsBang = true, IsSingle = true)]
         ISpread<bool> FPlay;
 
+        [Input("Stop", IsBang = true, IsSingle = true)]
+        ISpread<bool> FStop;
+
         [Input("Loop Count", IsSingle = true)]
         ISpread<int> FLoopCount;
+
+        [Input("DoSeek", IsBang = true, IsSingle = true)]
+        ISpread<bool> FDoSeek;
+
+        [Input("DoStep", IsBang = true, IsSingle = true)]
+        ISpread<bool> FDoStep;
+
+        [Input("SeekTime", IsSingle = true)]
+        ISpread<int> FSeekTime;
 
         [Output("Duration")]
         ISpread<float> FDuration;
 
+        [Output("Millisec")]
+        ISpread<float> FMillisec;
+
+        [Output("Sec")]
+        ISpread<float> FSec;
+
+        [Output("Min")]
+        ISpread<float> FMin;
+
+        [Output("State")]
+        ISpread<string> FState;
+
         [Output("IsPlaying", IsSingle = true)]
         ISpread<bool> FIsPlaying;
 
-		[Import()]
+        [Import()]
         public ILogger FLogger;
 
+        private KStudioClient client;
+        private KStudioPlayback playback;
 
-        private bool playbackOnce = false;
-
-       // private KStudioPlayback playback = new KStudioPlayback();
-
-
-        /// <summary> Delegate for placing a job with no arguments onto the Dispatcher </summary>
-       // private delegate void NoArgDelegate();
+        private bool isPlaying = false;
+        private bool seekModeStarted = false;
 
         /// <summary> Delegate for placing a job with a single string argument onto the Dispatcher </summary>
         // <param name="arg">string argument</param>
         private delegate void OneArgDelegate(string arg);
 
-
-
         public void Evaluate(int SpreadMax)
         {
 
-            if (this.FPlay[0])
-           {
-               FLogger.Log(LogType.Debug, "Play");
-               OneArgDelegate playback = new OneArgDelegate(PlaybackClip);
-               playback.BeginInvoke(@FFile[0], null, null);
-               playbackOnce = true;
-           }
-           else { 
-           }
+            // STANDARD PLAYING
 
-                       
+            if (this.FPlay[0] && !FIsPlaying[0])
+            {
+                FLogger.Log(LogType.Debug, "Start Playback");
+
+                Dispose();
+
+                OneArgDelegate playback = new OneArgDelegate(StandardPlayback);
+                playback.BeginInvoke(@FFile[0], null, null);
+            }
+            else
+            {
+            }
+
+            if (this.FStop[0])
+            {
+                FLogger.Log(LogType.Debug, "Stop Playback");
+
+                if (FIsPlaying[0])
+                {
+                    playback.Stop();
+                }
+            }
+            else
+            {
+            }
+
+            // ------------------------ SEEKING
+
+            if (this.FDoSeek[0])
+            {
+                FLogger.Log(LogType.Debug, "Do Seek");
+
+                //Dispose();
+
+                OneArgDelegate playback = new OneArgDelegate(SeekedPlayback);
+                playback.BeginInvoke(@FFile[0], null, null);
+                
+            }
+            else
+            {
+            }
+            
+            if (this.FDoStep[0])
+            {
+                playback.StepOnce();
+            }
+            else
+            {
+            }
+            
+
         }
-         
-         public void Dispose()
+        public void UpdateTimeOutputs()
+        {
+            // FLogger.Log(LogType.Debug, "DisposeFunction triggered");
+            // FDuration[0] = playback.Duration.Milliseconds;
+            FMillisec[0] = playback.CurrentRelativeTime.Milliseconds;
+            FSec[0] = playback.CurrentRelativeTime.Seconds;
+            FMin[0] = playback.CurrentRelativeTime.Minutes;
+            FState[0] = playback.State.ToString();
+
+        }
+
+        public void Dispose()
+        {
+            FLogger.Log(LogType.Debug, "DisposeFunction triggered");
+            //playback.Dispose();
+           // client.Dispose();
+            playback = null;
+            client = null;
+
+        }
+
+        public void StandardPlayback(string filePath)
         {
 
-             FLogger.Log(LogType.Debug, "DisposeFunction triggered");
+            client = KStudio.CreateClient();
+            client.ConnectToService();
 
-         }
+            playback = client.CreatePlayback(filePath);
+            playback.LoopCount = Convert.ToUInt16(FLoopCount[0]);
 
+            playback.Start();
+            FIsPlaying[0] = true;
+            FDuration[0] = playback.Duration.Milliseconds;
 
-
-        public void PlaybackClip(string filePath)
-         // public static void PlaybackClip(string filePath, uint loopCount)
-         {
-
-            using (KStudioClient client = KStudio.CreateClient())
+            while (playback.State == KStudioPlaybackState.Playing)
             {
-
-                client.ConnectToService();
-
-                using (KStudioPlayback playback = client.CreatePlayback(filePath))
-                {
-                    playback.LoopCount = Convert.ToUInt16(FLoopCount[0]);
-                    playback.Start();
-                    FDuration[0] = playback.Duration.Milliseconds;
-
-                    while (playback.State == KStudioPlaybackState.Playing)
-                    {
-                        FIsPlaying[0] = true;
-                       // System.Threading.Thread.Sleep(500);
-                    }
-
-                    if (playback.State == KStudioPlaybackState.Error)
-                    {
-                        throw new InvalidOperationException("Error: Playback failed!");
-                    }
-
-                    if (playback.State == KStudioPlaybackState.Stopped)
-                    {
-                        FLogger.Log(LogType.Debug, "Finished Playback");
-                        FIsPlaying[0] = false;
-                        playback.Dispose();
-                    }
-
-                }
-               
-                client.DisconnectFromService();
-                client.Dispose();
+              //  FLogger.Log(LogType.Debug, "IsPlaying");
+                // System.Threading.Thread.Sleep(500);
+                UpdateTimeOutputs();
             }
+
+            if (playback.State == KStudioPlaybackState.Error)
+            {
+                throw new InvalidOperationException("Error: Playback failed!");
+                Dispose();
+            }
+
+            if (playback.State == KStudioPlaybackState.Stopped)
+            {
+                FLogger.Log(LogType.Debug, "Playback Stopped");
+
+                if (FIsPlaying[0]) 
+                {
+                    Dispose();
+                    FIsPlaying[0] = false; 
+                }
+
+            }
+
+            client.DisconnectFromService();
+            Dispose();
+
+        }
+
+        public void SeekedPlayback(string filePath)
+        {
+
+            client = KStudio.CreateClient();
+            client.ConnectToService();
+
+            playback = client.CreatePlayback(filePath);
+            playback.StartPaused();
+            
+            //TimeSpan seekTo = new TimeSpan(FSeekTime[0]);
+            //TimeSpan seekTo = new TimeSpan(0, 0, 1, 0, 0);
+            //playback.Mode = KStudioPlaybackMode.TimingDisabled;
+            //playback.SeekByRelativeTime(seekTo);
+
+            playback.StepOnce();
+            FState[0] = playback.State.ToString();
+
+            //FIsPlaying[0] = true;
+            //FDuration[0] = playback.Duration.Milliseconds;
+           /* 
+            while (playback.State == KStudioPlaybackState.Playing)
+            {
+                UpdateTimeOutputs();
+                //  FLogger.Log(LogType.Debug, "IsPlaying");
+                // System.Threading.Thread.Sleep(500);
+            }*/
+            /*
+            if (playback.State == KStudioPlaybackState.Error)
+            {
+                throw new InvalidOperationException("Error: Playback failed!");
+                Dispose();
+            }
+
+            if (playback.State == KStudioPlaybackState.Stopped)
+            {
+                FLogger.Log(LogType.Debug, "Playback Stopped");
+
+                if (FIsPlaying[0])
+                {
+                    Dispose();
+                    FIsPlaying[0] = false;
+                }
+
+            }
+            
+            client.DisconnectFromService();
+            Dispose();*/
 
         }
 
