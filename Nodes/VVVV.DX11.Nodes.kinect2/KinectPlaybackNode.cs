@@ -40,6 +40,9 @@ namespace VVVV.MSKinect.Nodes
         [Input("Seek", IsBang = true, IsSingle = true)]
         ISpread<bool> FSeek;
 
+        [Input("Pause", IsBang = true, IsSingle = true)]
+        ISpread<bool> FPause;
+
         [Input("Reset", IsBang = true, IsSingle = true)]
         ISpread<bool> FReset;
 
@@ -58,6 +61,9 @@ namespace VVVV.MSKinect.Nodes
         [Output("State")]
         ISpread<string> FState;
 
+        [Output("IsSeeked")]
+        ISpread<bool> FIsSeeked;
+
         [Output("IsConnected")]
         ISpread<bool> FIsConnected;
 
@@ -70,6 +76,10 @@ namespace VVVV.MSKinect.Nodes
         private bool isPlaying = false;
         private bool init = false;
         private bool isConnected = false;
+        private int seekCount = 1;
+
+        //public delegate void EventHandler();
+        //public static event EventHandler _show;
 
         /// <summary> Delegate for placing a job with no arguments onto the Dispatcher </summary>
         private delegate void NoArgDelegate();
@@ -82,6 +92,7 @@ namespace VVVV.MSKinect.Nodes
 
             if (!init && FLoadClip[0])
             {
+
                 OneArgDelegate playback = new OneArgDelegate(LoadClip);
                 playback.BeginInvoke(@FFile[0], null, null);
 
@@ -108,6 +119,36 @@ namespace VVVV.MSKinect.Nodes
             else
             { }
 
+            if (this.FSeek[0])
+            {
+
+                //TimeSpan seekTo = new TimeSpan(FSeekTime[0]);
+                //  TimeSpan seekTo = new TimeSpan(0,0,FFrame[0]);
+                //playback.SeekByRelativeTime();
+                // playback.SeekByRelativeTime(seekTo);
+
+                seekCount++;
+                playback.Pause();
+
+                TimeSpan seekTo = new TimeSpan(0, 0, 0, 3, 0);
+                playback.SeekByRelativeTime(seekTo);
+                playback.Resume();
+                //FLogger.Log(LogType.Debug, seekTo.ToString());
+
+
+            }
+            else
+            { }
+
+            if (this.FPause[0])
+            {
+
+                playback.Pause();
+
+            }
+            else
+            { }
+
             // ------------------------------------------------ RESET
 
 
@@ -126,6 +167,20 @@ namespace VVVV.MSKinect.Nodes
             { }
 
         }
+
+        public void StateChanged()
+        {
+
+            FLogger.Log(LogType.Debug, "StateChanged!");
+            FState[0] = playback.State.ToString();
+        }
+
+        public void Seeked()
+        {
+
+            FLogger.Log(LogType.Debug, "Seeked!");
+        }
+
         public void UpdateOutputs()
         {
             // FLogger.Log(LogType.Debug, "DisposeFunction triggered");
@@ -133,8 +188,13 @@ namespace VVVV.MSKinect.Nodes
             FMillisec[0] = playback.CurrentRelativeTime.Milliseconds;
             FSec[0] = playback.CurrentRelativeTime.Seconds;
             FMin[0] = playback.CurrentRelativeTime.Minutes;
-            FState[0] = playback.State.ToString();
+           // FState[0] = playback.State.ToString();
             FIsConnected[0] = client.IsServiceConnected;
+
+
+           // if (playback.Seeked)
+                
+          //  FIsSeeked[0] = true
 
         }
 
@@ -202,71 +262,53 @@ namespace VVVV.MSKinect.Nodes
 
             playback = client.CreatePlayback(filePath);
             isConnected = true;
-            playback.StartPaused();
-            //playback.StepOnce();
+            FDuration[0] = playback.Duration.Milliseconds;
+
+            //geht vermutlich...
+            playback.StateChanged += (s, e) => FState[0] = playback.State.ToString(); 
+            playback.Seeked += (s, e) => Seeked();
+
+
+
+           // playback.Mode = KStudioPlaybackMode.TimingDisabled;
+           // playback.StartPaused();
 
             isPlaying = true;
-            FState[0] = playback.State.ToString();
-            //TimeSpan seekTo = new TimeSpan(0, 0, 1, 0, 0);
+
+            TimeSpan seekTo = new TimeSpan(0, 0, 0, 0, seekCount);
+           // playback.AddPausePointByRelativeTime(seekTo);
+
+            playback.Start();
+
+            FLogger.Log(LogType.Debug, "In " + playback.InPointByRelativeTime.ToString());
+            FLogger.Log(LogType.Debug, "Out " + playback.OutPointByRelativeTime.ToString());
+            FLogger.Log(LogType.Debug, "Mode " + playback.Mode.ToString());
+            FLogger.Log(LogType.Debug, "Pause " + playback.PausePointsByRelativeTime.ToString());
+           // FLogger.Log(LogType.Debug, "User " + playback.UserState.ToString()); //buggy
+           // FLogger.Log(LogType.Debug, "Flags " + playback.Flags.ToString()); //buggy
             
-            while (client.IsServiceConnected)
+            while (playback.State == KStudioPlaybackState.Playing)
             {
+                // System.Threading.Thread.Sleep(500);
                 UpdateOutputs();
             }
 
-            // playback.SeekByRelativeTime(seekTo);
-            // playback.StartRelativeTime.ToString();
-            //FDuration[0]  = playback.GetHashCode.
-           // playback.SeekByRelativeTime(seekTo);
-
-            // playback.AddPausePointByRelativeTime();
-
-
-            //KStudioPlaybackState.Busy
-            //KStudioPlaybackState.Idle
-
-            //TimeSpan seekTo = new TimeSpan(FSeekTime[0]);
-            //TimeSpan seekTo = new TimeSpan(0, 0, 1, 0, 0);
-            //playback.Mode = KStudioPlaybackMode.TimingDisabled;
-            //playback.SeekByRelativeTime(seekTo);
-            //FIsPlaying[0] = true;
-            //FDuration[0] = playback.Duration.Milliseconds;
-            /* 
-             while (playback.State == KStudioPlaybackState.Playing)
-             {
-                 UpdateTimeOutputs();
-                 //  FLogger.Log(LogType.Debug, "IsPlaying");
-                 // System.Threading.Thread.Sleep(500);
-             }*/
-            /*
             if (playback.State == KStudioPlaybackState.Error)
             {
                 throw new InvalidOperationException("Error: Playback failed!");
                 Dispose();
             }
 
-            if (playback.State == KStudioPlaybackState.Stopped)
-            {
-                FLogger.Log(LogType.Debug, "Playback Stopped");
-
-                if (FIsPlaying[0])
-                {
-                    Dispose();
-                    FIsPlaying[0] = false;
-                }
-
-            }
-            
-            client.DisconnectFromService();
-            Dispose();*/
-
+           
         }
 
         public void Dispose()
         {
             FLogger.Log(LogType.Debug, "DisposeFunction triggered");
             if(isConnected)
+            {
                 client.DisconnectFromService();
+            }
 
             isConnected = false;
             isPlaying = false;

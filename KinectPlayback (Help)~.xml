@@ -510,4 +510,6 @@
    </NODE>
    <LINK srcnodeid="67" srcpinname="IsSeeked" dstnodeid="72" dstpinname="Y Input Value">
    </LINK>
+   <LINK srcnodeid="56" srcpinname="Change" dstnodeid="69" dstpinname="Y Input Value">
+   </LINK>
    </PATCH>
