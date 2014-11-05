@@ -56,6 +56,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="KinectGestureNode.cs" />
+    <Compile Include="KinectPlaybackStepByStepNode.cs" />
     <Compile Include="KinectPlaybackNode.cs" />
     <Compile Include="KinectWorldTextureNode.cs" />
     <Compile Include="KinectIRTextureNode.cs" />
@@ -72,6 +73,7 @@
     <Compile Include="Lib\FuncBodySelector.cs" />
     <Compile Include="Lib\IBodySelector.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="testor.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Core\VVVV.DX11.Core\VVVV.DX11.Core.csproj">

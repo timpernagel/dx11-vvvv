@@ -1,5 +1,5 @@
 <!DOCTYPE PATCH  SYSTEM "http://vvvv.org/versions/vvvv45beta33.3.dtd" >
-   <PATCH nodename="C:\vvvv\dx11-vvvv\KinectPlayback (Help).v4p" systemname="kinectplayback" filename="C:\Users\user\Desktop\kinectplayback.v4p" scrollx="135" scrolly="0">
+   <PATCH nodename="C:\vvvv\dx11-vvvv\KinectPlayback StepByStep(Help).v4p" systemname="kinectplayback" filename="C:\Users\user\Desktop\kinectplayback.v4p" scrollx="135" scrolly="0">
    <BOUNDS type="Window" left="0" top="3705" width="10650" height="11895">
    </BOUNDS>
    <PACK Name="addonpack" Version="33.3.0">
@@ -275,9 +275,9 @@
    <LINK srcnodeid="53" srcpinname="Skeleton Count" dstnodeid="54" dstpinname="Y Input Value">
    </LINK>
    <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="55" systemname="IOBox (Value Advanced)">
-   <BOUNDS type="Box" left="2325" top="2265" width="990" height="990">
+   <BOUNDS type="Box" left="3975" top="2805" width="990" height="990">
    </BOUNDS>
-   <BOUNDS type="Node" left="2325" top="2265" width="0" height="0">
+   <BOUNDS type="Node" left="3975" top="2805" width="0" height="0">
    </BOUNDS>
    <PIN pinname="Y Input Value" slicecount="1" visible="1" values="0">
    </PIN>
@@ -312,96 +312,6 @@
    <PIN pinname="Y Input Value" slicecount="1" values="0">
    </PIN>
    </NODE>
-   <NODE systemname="Kinect2 Playback (Devices Microsoft)" filename="%VVVV%\packs\dx11\nodes\plugins\kinect2\VVVV.DX11.Nodes.Kinect2.dll" nodename="Kinect2 Playback (Devices Microsoft)" componentmode="Hidden" id="67">
-   <BOUNDS type="Node" left="1695" top="4110" width="6915" height="270">
-   </BOUNDS>
-   <PIN pinname="Frame" visible="1">
-   </PIN>
-   <PIN pinname="Seek" visible="1">
-   </PIN>
-   <PIN pinname="Time" visible="1" slicecount="1" values="||">
-   </PIN>
-   <PIN pinname="Pause" slicecount="1" visible="1" values="0">
-   </PIN>
-   <PIN pinname="IsSeeked" visible="1">
-   </PIN>
-   <PIN pinname="CurrentPosition" visible="1">
-   </PIN>
-   <PIN pinname="CurrentFrame" visible="1">
-   </PIN>
-   </NODE>
-   <LINK srcnodeid="26" srcpinname="Output String" dstnodeid="67" dstpinname="XEF-File">
-   </LINK>
-   <LINK srcnodeid="67" srcpinname="Duration" dstnodeid="32" dstpinname="Y Input Value">
-   </LINK>
-   <LINK srcnodeid="67" srcpinname="State" dstnodeid="47" dstpinname="Input String">
-   </LINK>
-   <LINK srcnodeid="51" srcpinname="Y Output Value" dstnodeid="67" dstpinname="Reset">
-   </LINK>
-   <LINK srcnodeid="55" srcpinname="Y Output Value" dstnodeid="67" dstpinname="LoadClip">
-   </LINK>
-   <LINK srcnodeid="67" srcpinname="IsConnected" dstnodeid="61" dstpinname="Y Input Value">
-   </LINK>
-   <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="68" systemname="IOBox (Value Advanced)">
-   <BOUNDS type="Box" left="4455" top="3480" width="795" height="240">
-   </BOUNDS>
-   <BOUNDS type="Node" left="4455" top="3480" width="0" height="0">
-   </BOUNDS>
-   <PIN pinname="Y Input Value" slicecount="1" visible="1" values="58">
-   </PIN>
-   <PIN pinname="Units" slicecount="1" values="||">
-   </PIN>
-   <PIN pinname="Precision" slicecount="1" values="4">
-   </PIN>
-   <PIN pinname="Value Type" slicecount="1" values="Integer">
-   </PIN>
-   <PIN pinname="Descriptive Name" slicecount="1" values="Frame">
-   </PIN>
-   </NODE>
-   <LINK srcnodeid="68" srcpinname="Y Output Value" dstnodeid="67" dstpinname="Frame">
-   </LINK>
-   <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="69" systemname="IOBox (Value Advanced)">
-   <BOUNDS type="Box" left="6345" top="3375" width="480" height="480">
-   </BOUNDS>
-   <BOUNDS type="Node" left="6345" top="3375" width="0" height="0">
-   </BOUNDS>
-   <PIN pinname="Y Input Value" slicecount="1" visible="1" values="0">
-   </PIN>
-   <PIN pinname="Units" slicecount="1" values="||">
-   </PIN>
-   <PIN pinname="Precision" slicecount="1" values="4">
-   </PIN>
-   <PIN pinname="Value Type" slicecount="1" values="Boolean">
-   </PIN>
-   <PIN pinname="Behavior" slicecount="1" values="Bang">
-   </PIN>
-   <PIN pinname="X Input Value" slicecount="1" values="0">
-   </PIN>
-   <PIN pinname="Descriptive Name" slicecount="1" values="Seek">
-   </PIN>
-   </NODE>
-   <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="70" systemname="IOBox (Value Advanced)">
-   <BOUNDS type="Box" left="7200" top="3120" width="480" height="480">
-   </BOUNDS>
-   <BOUNDS type="Node" left="7200" top="3120" width="0" height="0">
-   </BOUNDS>
-   <PIN pinname="Y Input Value" slicecount="1" visible="1" values="0">
-   </PIN>
-   <PIN pinname="Units" slicecount="1" values="||">
-   </PIN>
-   <PIN pinname="Precision" slicecount="1" values="4">
-   </PIN>
-   <PIN pinname="Value Type" slicecount="1" values="Boolean">
-   </PIN>
-   <PIN pinname="Behavior" slicecount="1" values="Bang">
-   </PIN>
-   <PIN pinname="X Input Value" slicecount="1" values="0">
-   </PIN>
-   <PIN pinname="Descriptive Name" slicecount="1" values="Pause">
-   </PIN>
-   </NODE>
-   <LINK srcnodeid="70" srcpinname="Y Output Value" dstnodeid="67" dstpinname="Pause">
-   </LINK>
    <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="72" systemname="IOBox (Value Advanced)">
    <BOUNDS type="Box" left="7185" top="4515" width="480" height="480">
    </BOUNDS>
@@ -417,9 +327,9 @@
    </PIN>
    <PIN pinname="Descriptive Name" slicecount="1" values="IsSeeked">
    </PIN>
+   <PIN pinname="Y Input Value" slicecount="1" values="0">
+   </PIN>
    </NODE>
-   <LINK srcnodeid="67" srcpinname="IsSeeked" dstnodeid="72" dstpinname="Y Input Value">
-   </LINK>
    <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="73" systemname="IOBox (Value Advanced)">
    <BOUNDS type="Box" left="3045" top="4515" width="795" height="240">
    </BOUNDS>
@@ -431,9 +341,9 @@
    </PIN>
    <PIN pinname="Descriptive Name" slicecount="1" values="CurrentPosition">
    </PIN>
+   <PIN pinname="Y Input Value" slicecount="1" values="0">
+   </PIN>
    </NODE>
-   <LINK srcnodeid="67" srcpinname="CurrentPosition" dstnodeid="73" dstpinname="Y Input Value">
-   </LINK>
    <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="74" systemname="IOBox (Value Advanced)">
    <BOUNDS type="Box" left="4440" top="4515" width="795" height="240">
    </BOUNDS>
@@ -449,23 +359,51 @@
    </PIN>
    <PIN pinname="Y Output Value" visible="1">
    </PIN>
+   <PIN pinname="Y Input Value" slicecount="1" values="0">
+   </PIN>
    </NODE>
+   <NODE systemname="Kinect2 Playback StepByStep (Devices Microsoft)" filename="%VVVV%\packs\dx11\nodes\plugins\kinect2\VVVV.DX11.Nodes.Kinect2.dll" nodename="Kinect2 Playback StepByStep (Devices Microsoft)" componentmode="Hidden" id="67">
+   <BOUNDS type="Node" left="1695" top="4110" width="6915" height="270">
+   </BOUNDS>
+   <PIN pinname="Frame" visible="1">
+   </PIN>
+   <PIN pinname="Seek" visible="1">
+   </PIN>
+   <PIN pinname="Time" visible="1">
+   </PIN>
+   <PIN pinname="Pause" visible="1">
+   </PIN>
+   <PIN pinname="IsSeeked" visible="1">
+   </PIN>
+   <PIN pinname="CurrentPosition" visible="1">
+   </PIN>
+   <PIN pinname="CurrentFrame" visible="1">
+   </PIN>
+   <PIN pinname="StepOnce" visible="1">
+   </PIN>
+   </NODE>
+   <LINK srcnodeid="26" srcpinname="Output String" dstnodeid="67" dstpinname="XEF-File">
+   </LINK>
+   <LINK srcnodeid="67" srcpinname="Duration" dstnodeid="32" dstpinname="Y Input Value">
+   </LINK>
+   <LINK srcnodeid="67" srcpinname="State" dstnodeid="47" dstpinname="Input String">
+   </LINK>
+   <LINK srcnodeid="51" srcpinname="Y Output Value" dstnodeid="67" dstpinname="Reset">
+   </LINK>
+   <LINK srcnodeid="55" srcpinname="Y Output Value" dstnodeid="67" dstpinname="LoadClip">
+   </LINK>
+   <LINK srcnodeid="67" srcpinname="IsConnected" dstnodeid="61" dstpinname="Y Input Value">
+   </LINK>
+   <LINK srcnodeid="67" srcpinname="IsSeeked" dstnodeid="72" dstpinname="Y Input Value">
+   </LINK>
+   <LINK srcnodeid="67" srcpinname="CurrentPosition" dstnodeid="73" dstpinname="Y Input Value">
+   </LINK>
    <LINK srcnodeid="67" srcpinname="CurrentFrame" dstnodeid="74" dstpinname="Y Input Value">
    </LINK>
-   <NODE systemname="FrameCounter (Animation)" nodename="FrameCounter (Animation)" componentmode="Hidden" id="75">
-   <BOUNDS type="Node" left="4455" top="2820" width="100" height="100">
+   <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="79" systemname="IOBox (Value Advanced)">
+   <BOUNDS type="Box" left="6270" top="3120" width="480" height="480">
    </BOUNDS>
-   <PIN pinname="Enable" visible="1">
-   </PIN>
-   <PIN pinname="Reset" slicecount="1" visible="1" values="0">
-   </PIN>
-   <PIN pinname="Frame Count" visible="1">
-   </PIN>
-   </NODE>
-   <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="76" systemname="IOBox (Value Advanced)">
-   <BOUNDS type="Box" left="5805" top="3375" width="480" height="480">
-   </BOUNDS>
-   <BOUNDS type="Node" left="5805" top="3375" width="0" height="0">
+   <BOUNDS type="Node" left="6270" top="3120" width="0" height="0">
    </BOUNDS>
    <PIN pinname="Y Input Value" slicecount="1" visible="1" values="0">
    </PIN>
@@ -475,51 +413,31 @@
    </PIN>
    <PIN pinname="Value Type" slicecount="1" values="Boolean">
    </PIN>
-   <PIN pinname="Behavior" slicecount="1" values="Toggle">
+   <PIN pinname="Behavior" slicecount="1" values="Bang">
    </PIN>
-   </NODE>
-   <LINK srcnodeid="76" srcpinname="Y Output Value" dstnodeid="67" dstpinname="Seek">
-   </LINK>
-   <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="77" systemname="IOBox (Value Advanced)">
-   <BOUNDS type="Box" left="4455" top="1755" width="480" height="480">
-   </BOUNDS>
-   <BOUNDS type="Node" left="4455" top="1755" width="0" height="0">
-   </BOUNDS>
-   <PIN pinname="Y Input Value" slicecount="1" visible="1" values="0">
-   </PIN>
-   <PIN pinname="Units" slicecount="1" values="||">
-   </PIN>
-   <PIN pinname="Precision" slicecount="1" values="4">
-   </PIN>
-   <PIN pinname="Value Type" slicecount="1" values="Boolean">
-   </PIN>
-   <PIN pinname="Behavior" slicecount="1" values="Toggle">
+   <PIN pinname="Descriptive Name" slicecount="1" values="StepOnce">
    </PIN>
    <PIN pinname="X Input Value" slicecount="1" values="0">
    </PIN>
-   <PIN pinname="Y Output Value" visible="1">
-   </PIN>
    </NODE>
-   <LINK srcnodeid="77" srcpinname="Y Output Value" dstnodeid="75" dstpinname="Enable">
+   <LINK srcnodeid="79" srcpinname="Y Output Value" dstnodeid="67" dstpinname="StepOnce">
    </LINK>
-   <NODE systemname="TogEdge (Animation)" nodename="TogEdge (Animation)" componentmode="Hidden" id="78">
-   <BOUNDS type="Node" left="5460" top="2310" width="1800" height="270">
+   <NODE systemname="OnOpen (VVVV)" nodename="OnOpen (VVVV)" componentmode="Hidden" id="80">
+   <BOUNDS type="Node" left="3990" top="2295" width="100" height="100">
    </BOUNDS>
-   <PIN pinname="Input" visible="1">
+   <PIN pinname="Bang" visible="1">
    </PIN>
-   <PIN pinname="Up Edge" visible="1">
-   </PIN>
-   <PIN pinname="Down Edge" visible="1">
+   <PIN pinname="Simulate" slicecount="1" values="0">
    </PIN>
    </NODE>
-   <LINK srcnodeid="77" srcpinname="Y Output Value" dstnodeid="78" dstpinname="Input">
+   <LINK srcnodeid="80" srcpinname="Bang" dstnodeid="55" dstpinname="Y Input Value">
    </LINK>
-   <LINK srcnodeid="78" srcpinname="Up Edge" dstnodeid="75" dstpinname="Reset">
-   </LINK>
-   <LINK srcnodeid="77" srcpinname="Y Output Value" dstnodeid="76" dstpinname="Y Input Value">
-   </LINK>
-   <LINK srcnodeid="75" srcpinname="Frame Count" dstnodeid="68" dstpinname="Y Input Value">
-   </LINK>
-   <LINK srcnodeid="78" srcpinname="Down Edge" dstnodeid="70" dstpinname="Y Input Value">
-   </LINK>
+   <NODE systemname="LFO (Animation)" nodename="LFO (Animation)" componentmode="Hidden" id="81">
+   <BOUNDS type="Node" left="5925" top="2295" width="100" height="100">
+   </BOUNDS>
+   <PIN pinname="Change" visible="1">
+   </PIN>
+   <PIN pinname="Period" slicecount="1" values="0.01">
+   </PIN>
+   </NODE>
    </PATCH>

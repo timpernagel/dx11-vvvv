@@ -13,6 +13,9 @@ using VVVV.Core.Logging;
 //using VVVV.PluginInterfaces.V1;
 using System.ComponentModel.Composition;
 
+using System.Threading;
+using VVVV.DX11.Nodes.Kinect2;
+
 namespace VVVV.MSKinect.Nodes
 {
     [PluginInfo(Name = "Kinect2 Playback",
@@ -31,9 +34,6 @@ namespace VVVV.MSKinect.Nodes
         [Input("LoadClip", IsBang = true, IsSingle = true)]
         ISpread<bool> FLoadClip;
 
-        [Input("DoStep", IsBang = true, IsSingle = true)]
-        ISpread<bool> FDoStep;
-
         [Input("Frame", IsSingle = true)]
         ISpread<int> FFrame;
 
@@ -47,16 +47,13 @@ namespace VVVV.MSKinect.Nodes
         ISpread<bool> FReset;
 
         [Output("Duration")]
-        ISpread<float> FDuration;
+        ISpread<double> FDuration;
 
-        [Output("Min")]
-        ISpread<float> FMin;
+        [Output("CurrentPosition")]
+        ISpread<double> FCurrentPosition;
 
-        [Output("Sec")]
-        ISpread<float> FSec;
-
-        [Output("Millisec")]
-        ISpread<float> FMillisec;
+        [Output("CurrentFrame")]
+        ISpread<int> FCurrentFrame;
 
         [Output("State")]
         ISpread<string> FState;
@@ -74,6 +71,7 @@ namespace VVVV.MSKinect.Nodes
         private KStudioPlayback playback;
 
         private bool isPlaying = false;
+        private bool isPaused = false;
         private bool init = false;
         private bool isConnected = false;
         private int seekCount = 1;
@@ -87,8 +85,10 @@ namespace VVVV.MSKinect.Nodes
         // <param name="arg">string argument</param>
         private delegate void OneArgDelegate(string arg);
 
+
         public void Evaluate(int SpreadMax)
         {
+           
 
             if (!init && FLoadClip[0])
             {
@@ -99,42 +99,52 @@ namespace VVVV.MSKinect.Nodes
                 init = true;
             }
 
+            //if (init)
             
             // ------------------------------------------------ SEEKING
 
 
-            if (this.FDoStep[0])
-            {
-                if (!isPlaying)
-                {
-                    OneArgDelegate playback = new OneArgDelegate(LoadClip);
-                    playback.BeginInvoke(@FFile[0], null, null);
-                }
-                else
-                {
-                    playback.StepOnce();
-                }
-
-            }
-            else
-            { }
-
             if (this.FSeek[0])
             {
-
+                
                 //TimeSpan seekTo = new TimeSpan(FSeekTime[0]);
                 //  TimeSpan seekTo = new TimeSpan(0,0,FFrame[0]);
                 //playback.SeekByRelativeTime();
                 // playback.SeekByRelativeTime(seekTo);
 
                 seekCount++;
-                playback.Pause();
 
-                TimeSpan seekTo = new TimeSpan(0, 0, 0, 3, 0);
-                playback.SeekByRelativeTime(seekTo);
-                playback.Resume();
-                //FLogger.Log(LogType.Debug, seekTo.ToString());
+                if (playback.State == KStudioPlaybackState.Playing)
+                {
 
+                    playback.Pause();
+                    isPaused = true;
+
+                }
+
+                if (playback.State == KStudioPlaybackState.Paused)
+                {
+
+                    TimeSpan seekTo = TimeSpan.FromMilliseconds((1000*FFrame[0])/30);
+                    TimeSpan blub = new TimeSpan(seekTo.Days,seekTo.Hours, seekTo.Minutes, seekTo.Seconds, seekTo.Milliseconds);
+                    TimeSpan bla = new TimeSpan(0, 0, 0, 0, 21117);
+
+                    //TimeSpan.FromTicks
+
+                    FLogger.Log(LogType.Debug, "Frame to milli " + seekTo);
+                    playback.SeekByRelativeTime(seekTo);
+                    playback.Resume();
+
+                    //FCurrentFrame[0] = Convert.ToInt16(playback.CurrentRelativeTime.TotalMilliseconds) / 30);
+
+                    //DAZWISCHEN MUSS WAS PASSIEREN
+                    //austausch vom Bild, ein Frame warten
+                   // playback.PropertyChanged
+
+                    //playback.Pause();
+                    //isPaused = false;
+                }
+                
 
             }
             else
@@ -143,8 +153,13 @@ namespace VVVV.MSKinect.Nodes
             if (this.FPause[0])
             {
 
-                playback.Pause();
+                if (playback.State == KStudioPlaybackState.Playing)
+                {
 
+                    playback.Pause();
+                    isPaused = true;
+
+                }
             }
             else
             { }
@@ -171,30 +186,49 @@ namespace VVVV.MSKinect.Nodes
         public void StateChanged()
         {
 
-            FLogger.Log(LogType.Debug, "StateChanged!");
+            FLogger.Log(LogType.Debug, "StateChanged to " + playback.State.ToString());
             FState[0] = playback.State.ToString();
+            
+            if (playback.State == KStudioPlaybackState.Playing)
+            {
+
+                //playback.Pause();
+                isPaused = true;
+
+            }
         }
 
         public void Seeked()
         {
-
-            FLogger.Log(LogType.Debug, "Seeked!");
+            
+            FLogger.Log(LogType.Debug, "Seeeeeeeeked ");
         }
+
+        public void Property()
+        {
+            FLogger.Log(LogType.Debug, " - - - - Property ");
+
+            if (playback.State == KStudioPlaybackState.Playing)
+            {
+
+                //playback.Pause();
+                isPaused = true;
+
+            }
+        }
+
 
         public void UpdateOutputs()
         {
             // FLogger.Log(LogType.Debug, "DisposeFunction triggered");
-            // FDuration[0] = playback.Duration.Milliseconds;
-            FMillisec[0] = playback.CurrentRelativeTime.Milliseconds;
-            FSec[0] = playback.CurrentRelativeTime.Seconds;
-            FMin[0] = playback.CurrentRelativeTime.Minutes;
+            FDuration[0] = playback.Duration.TotalMilliseconds;
+            //FMillisec[0] = playback.CurrentRelativeTime.Milliseconds;
+            //FSec[0] = playback.CurrentRelativeTime.Seconds;
+            FCurrentPosition[0] = playback.CurrentRelativeTime.TotalMilliseconds;
+            FCurrentFrame[0] = Convert.ToInt16(playback.CurrentRelativeTime.TotalMilliseconds)/30 ;
+            //FMin[0] = playback.CurrentRelativeTime.Minutes;
            // FState[0] = playback.State.ToString();
             FIsConnected[0] = client.IsServiceConnected;
-
-
-           // if (playback.Seeked)
-                
-          //  FIsSeeked[0] = true
 
         }
 
@@ -263,33 +297,27 @@ namespace VVVV.MSKinect.Nodes
             playback = client.CreatePlayback(filePath);
             isConnected = true;
             FDuration[0] = playback.Duration.Milliseconds;
+            playback.LoopCount = 3;
 
             //geht vermutlich...
-            playback.StateChanged += (s, e) => FState[0] = playback.State.ToString(); 
-            playback.Seeked += (s, e) => Seeked();
-
-
-
-           // playback.Mode = KStudioPlaybackMode.TimingDisabled;
-           // playback.StartPaused();
-
+            playback.StateChanged += (s, e) => StateChanged();
+            playback.Looped += (s, e) => LoopEvent();
+           // //playback.Seeked += (s, e) => Seeked();
+            //playback.Looped += seekEvent;
+            playback.PropertyChanged += (s, e) => Property();
+            
+            playback.Start(); //startpaused eht nicht mit seeking
             isPlaying = true;
-
-            TimeSpan seekTo = new TimeSpan(0, 0, 0, 0, seekCount);
-           // playback.AddPausePointByRelativeTime(seekTo);
-
-            playback.Start();
 
             FLogger.Log(LogType.Debug, "In " + playback.InPointByRelativeTime.ToString());
             FLogger.Log(LogType.Debug, "Out " + playback.OutPointByRelativeTime.ToString());
             FLogger.Log(LogType.Debug, "Mode " + playback.Mode.ToString());
             FLogger.Log(LogType.Debug, "Pause " + playback.PausePointsByRelativeTime.ToString());
-           // FLogger.Log(LogType.Debug, "User " + playback.UserState.ToString()); //buggy
-           // FLogger.Log(LogType.Debug, "Flags " + playback.Flags.ToString()); //buggy
             
+
             while (playback.State == KStudioPlaybackState.Playing)
             {
-                // System.Threading.Thread.Sleep(500);
+                 //System.Threading.Thread.Sleep(500);
                 UpdateOutputs();
             }
 
@@ -302,6 +330,21 @@ namespace VVVV.MSKinect.Nodes
            
         }
 
+        private void LoopEvent()
+        {
+            FLogger.Log(LogType.Debug, "Loooooop!");
+        }
+
+        private void seekEvent(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+            FLogger.Log(LogType.Debug, "Seekeeeed");
+            //throw new NotImplementedException();
+        }
+
+
+
+
         public void Dispose()
         {
             FLogger.Log(LogType.Debug, "DisposeFunction triggered");
@@ -312,6 +355,7 @@ namespace VVVV.MSKinect.Nodes
 
             isConnected = false;
             isPlaying = false;
+            isPaused = false;
             init = false;
 
             //UpdateOutputs();
