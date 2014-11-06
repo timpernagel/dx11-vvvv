@@ -33,7 +33,16 @@ namespace VVVV.MSKinect.Nodes
 
         [Input("LoadClip", IsBang = true, IsSingle = true)]
         ISpread<bool> FLoadClip;
-        
+
+        [Input("Play", IsBang = true, IsSingle = true)]
+        ISpread<bool> FPlay;
+
+        [Input("Pause", IsBang = true, IsSingle = true)]
+        ISpread<bool> FPause;
+
+        [Input("Stop", IsBang = true, IsSingle = true)]
+        ISpread<bool> FStop;
+
         [Input("StepOnce", IsBang = true, IsSingle = true)]
         ISpread<bool> FStepOnce;
 
@@ -48,6 +57,9 @@ namespace VVVV.MSKinect.Nodes
 
         [Output("CurrentFrame")]
         ISpread<int> FCurrentFrame;
+
+        [Output("CurrentTick")]
+        ISpread<int> FCurrentTick;
 
         [Output("State")]
         ISpread<string> FState;
@@ -95,18 +107,78 @@ namespace VVVV.MSKinect.Nodes
 
             if (this.FStepOnce[0])
             {
-
-                if (playback.State == KStudioPlaybackState.Paused)
+                if (!init)
                 {
-                    playback.StepOnce(KStudioEventStreamDataTypeIds.UncompressedColor);
-                    UpdateOutputs();
+                    OneArgDelegate playback = new OneArgDelegate(KinectPlayback);
+                    playback.BeginInvoke(@FFile[0], null, null);
+                    init = true;
+                }
+                else
+                {
+                    if (playback.State == KStudioPlaybackState.Paused)
+                    {
+                        //playback.StepOnce(KStudioEventStreamDataTypeIds.Ir);
+                        playback.StepOnce(KStudioEventStreamDataTypeIds.Depth);
+                        UpdateOutputs();
+                    }
+                }
+
+            }
+            else
+            { }
+
+            if (this.FPlay[0])
+            {
+
+                if (!init)
+                {
+                    OneArgDelegate playback = new OneArgDelegate(KinectPlayback);
+                    playback.BeginInvoke(@FFile[0], null, null);
+                    init = true;
+                } 
+                else 
+                {
+
+
+                    if (playback.State == KStudioPlaybackState.Paused)
+                    {
+                        playback.Resume();
+                    }
+
+                    if (playback.State == KStudioPlaybackState.Stopped)
+                    {
+                        playback.Start();
+                    }
+                
+                
+                }
+
+            }
+            else
+            { }
+            if (this.FPause[0])
+            {
+                if (playback.State == KStudioPlaybackState.Playing)
+                {
+                    playback.Pause();
                 }
             }
             else
             { }
-            
-            // ------------------------------------------------ RESET
+            if (this.FStop[0])
+            {
+                
+                if (playback.State == KStudioPlaybackState.Playing || playback.State == KStudioPlaybackState.Paused)
+                {
+                
+                    playback.Stop();
+                    Dispose();
 
+                 }
+                else { }
+            }
+            else
+            { }
 
             if (this.FReset[0])
             {
@@ -127,8 +199,8 @@ namespace VVVV.MSKinect.Nodes
 
         public void StateChanged()
         {
-
-            FLogger.Log(LogType.Debug, "StateChanged to " + playback.State.ToString());
+            UpdateOutputs();
+          //  FLogger.Log(LogType.Debug, "StateChanged to " + playback.State.ToString());
             FState[0] = playback.State.ToString();
             
             if (playback.State == KStudioPlaybackState.Playing)
@@ -144,7 +216,8 @@ namespace VVVV.MSKinect.Nodes
         {
             FDuration[0] = playback.Duration.TotalMilliseconds;
             FCurrentPosition[0] = playback.CurrentRelativeTime.TotalMilliseconds;
-            FCurrentFrame[0] = Convert.ToInt16(playback.CurrentRelativeTime.TotalMilliseconds)/30 ;
+            FCurrentFrame[0] = Convert.ToInt32(playback.CurrentRelativeTime.TotalMilliseconds) / 30;
+            FCurrentTick[0] = Convert.ToInt32(playback.CurrentRelativeTime.Ticks);
             FIsConnected[0] = client.IsServiceConnected;
 
         }
@@ -159,8 +232,9 @@ namespace VVVV.MSKinect.Nodes
             FDuration[0] = playback.Duration.Milliseconds;
 
             playback.StateChanged += (s, e) => StateChanged();
-            
+
             playback.StartPaused(); //startpaused eht nicht mit seeking
+           // playback.StartPaused(); //startpaused eht nicht mit seeking
             isPlaying = true;
 
             FLogger.Log(LogType.Debug, "In " + playback.InPointByRelativeTime.ToString());
@@ -203,6 +277,11 @@ namespace VVVV.MSKinect.Nodes
             init = false;
 
             //UpdateOutputs();
+
+            FDuration[0] = 0;
+            FCurrentPosition[0] = 0;
+            FCurrentFrame[0] = 0;
+            FIsConnected[0] = false;
             
             playback = null;
             client = null;
