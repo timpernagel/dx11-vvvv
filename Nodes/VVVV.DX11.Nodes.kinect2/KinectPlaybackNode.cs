@@ -49,6 +49,12 @@ namespace VVVV.MSKinect.Nodes
         [Input("StepOnce", IsBang = true, IsSingle = true)]
         ISpread<bool> FStepOnce;
 
+        [Input("Seek", IsBang = true, IsSingle = true)]
+        ISpread<bool> FSeek;
+
+        [Input("SeekTime", IsSingle = true)]
+        ISpread<double> FSeekTime;
+
         [Input("Reset", IsBang = true, IsSingle = true)]
         ISpread<bool> FReset;
 
@@ -124,7 +130,8 @@ namespace VVVV.MSKinect.Nodes
                     if (playback.State == KStudioPlaybackState.Paused)
                     {
                         //playback.StepOnce(KStudioEventStreamDataTypeIds.Ir);
-                        playback.StepOnce(KStudioEventStreamDataTypeIds.Depth);
+                        //playback.StepOnce(KStudioEventStreamDataTypeIds.Depth);
+                        playback.StepOnce(KStudioEventStreamDataTypeIds.UncompressedColor);
                         UpdateOutputs();
                     }
                 }
@@ -162,6 +169,7 @@ namespace VVVV.MSKinect.Nodes
             }
             else
             { }
+
             if (this.FPause[0])
             {
                 if (playback.State == KStudioPlaybackState.Playing)
@@ -171,6 +179,7 @@ namespace VVVV.MSKinect.Nodes
             }
             else
             { }
+
             if (this.FStop[0])
             {
 
@@ -185,6 +194,33 @@ namespace VVVV.MSKinect.Nodes
             }
             else
             { }
+
+            if (this.FSeek[0])
+            {
+                if (!init)
+                {
+                    TwoArgDelegate playback = new TwoArgDelegate(KinectPlayback);
+                    playback.BeginInvoke(@FFile[0], "seek", null, null);
+                    init = true;
+                }
+                else { 
+
+                if (playback.State == KStudioPlaybackState.Playing)
+                {
+                    playback.Pause();
+                }
+
+                TimeSpan curTime = new TimeSpan(Convert.ToInt64(FSeekTime[0]) * 10000000);
+              
+                //TimeSpan curTime = new TimeSpan(100000000);
+                playback.SeekByRelativeTime(curTime);
+
+                playback.Resume();
+                }
+            }
+            else
+            { }
+
 
             if (this.FReset[0])
             {
@@ -244,7 +280,10 @@ namespace VVVV.MSKinect.Nodes
                 playback.Start();
 
             if (mode == "step")
-                playback.StartPaused(); 
+                playback.StartPaused();
+
+            if (mode == "seek")
+                playback.Start(); 
             
             //startpaused eht nicht mit seeking
             // playback.StartPaused(); //startpaused eht nicht mit seeking
@@ -257,6 +296,12 @@ namespace VVVV.MSKinect.Nodes
 
 
             while (playback.State == KStudioPlaybackState.Playing)
+            {
+                //System.Threading.Thread.Sleep(500);
+                UpdateOutputs();
+            }
+
+            while (playback.State == KStudioPlaybackState.Paused)
             {
                 //System.Threading.Thread.Sleep(500);
                 UpdateOutputs();
