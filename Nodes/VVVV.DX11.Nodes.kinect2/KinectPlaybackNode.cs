@@ -31,8 +31,8 @@ namespace VVVV.MSKinect.Nodes
         [Input("XEF-File", DefaultString = "", StringType = StringType.Filename)]
         ISpread<string> FFile;
 
-        [Input("LoadClip", IsBang = true, IsSingle = true)]
-        ISpread<bool> FLoadClip;
+        //[Input("LoadClip", IsBang = true, IsSingle = true)]
+        //ISpread<bool> FLoadClip;
 
         [Input("Play", IsBang = true, IsSingle = true)]
         ISpread<bool> FPlay;
@@ -93,27 +93,30 @@ namespace VVVV.MSKinect.Nodes
         /// <summary> Delegate for placing a job with a single string argument onto the Dispatcher </summary>
         // <param name="arg">string argument</param>
         private delegate void OneArgDelegate(string arg);
+        /// <summary> Delegate for placing a job with a single string argument onto the Dispatcher </summary>
+        // <param name="arg">string argument</param>
+        private delegate void TwoArgDelegate(string arg,string arg2);
 
 
         public void Evaluate(int SpreadMax)
         {
 
-            if (!init && FLoadClip[0])
-            {
+            //if (!init && FLoadClip[0])
+            //{
 
-                OneArgDelegate playback = new OneArgDelegate(KinectPlayback);
-                playback.BeginInvoke(@FFile[0], null, null);
+            //    OneArgDelegate playback = new OneArgDelegate(KinectPlayback);
+            //    playback.BeginInvoke(@FFile[0], null, null);
 
-                init = true;
-            }
+            //    init = true;
+            //}
 
 
             if (this.FStepOnce[0])
             {
                 if (!init)
                 {
-                    OneArgDelegate playback = new OneArgDelegate(KinectPlayback);
-                    playback.BeginInvoke(@FFile[0], null, null);
+                    TwoArgDelegate playback = new TwoArgDelegate(KinectPlayback);
+                    playback.BeginInvoke(@FFile[0], "step", null, null);
                     init = true;
                 }
                 else
@@ -135,8 +138,8 @@ namespace VVVV.MSKinect.Nodes
 
                 if (!init)
                 {
-                    OneArgDelegate playback = new OneArgDelegate(KinectPlayback);
-                    playback.BeginInvoke(@FFile[0], null, null);
+                    TwoArgDelegate playback = new TwoArgDelegate(KinectPlayback);
+                    playback.BeginInvoke(@FFile[0], "play", null, null);
                     init = true;
                 }
                 else
@@ -225,7 +228,7 @@ namespace VVVV.MSKinect.Nodes
 
         }
 
-        public void KinectPlayback(string filePath)
+        public void KinectPlayback(string filePath,string mode)
         {
             client = KStudio.CreateClient();
             client.ConnectToService();
@@ -237,7 +240,13 @@ namespace VVVV.MSKinect.Nodes
 
             playback.StateChanged += (s, e) => StateChanged();
 
-            playback.StartPaused(); //startpaused eht nicht mit seeking
+            if (mode == "play")
+                playback.Start();
+
+            if (mode == "step")
+                playback.StartPaused(); 
+            
+            //startpaused eht nicht mit seeking
             // playback.StartPaused(); //startpaused eht nicht mit seeking
             isPlaying = true;
 
