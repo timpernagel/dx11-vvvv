@@ -56,7 +56,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="KinectGestureNode.cs" />
-    <Compile Include="KinectPlaybackStepByStepNode.cs" />
     <Compile Include="KinectPlaybackNode.cs" />
     <Compile Include="KinectWorldTextureNode.cs" />
     <Compile Include="KinectIRTextureNode.cs" />
