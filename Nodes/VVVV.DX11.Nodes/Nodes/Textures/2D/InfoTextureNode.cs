@@ -44,6 +44,9 @@ namespace VVVV.DX11.Nodes
         [Output("Resource Pointer", Visibility=PinVisibility.OnlyInspector)]
         protected ISpread<int> FOutPointer;
 
+        [Output("Creation Time", Visibility = PinVisibility.OnlyInspector)]
+        protected ISpread<int> FOutCreationTime;
+
         [Import()]
         protected IPluginHost FHost;
 
@@ -74,6 +77,7 @@ namespace VVVV.DX11.Nodes
                 this.FOutAAQuality.SliceCount = this.FTextureIn.SliceCount;
                 this.FOutArraySize.SliceCount = this.FTextureIn.SliceCount;
                 this.FOutPointer.SliceCount = this.FTextureIn.SliceCount;
+                this.FOutCreationTime.SliceCount = this.FTextureIn.SliceCount;
 
                 for (int i = 0; i < this.FTextureIn.SliceCount; i++)
                 {
@@ -90,6 +94,7 @@ namespace VVVV.DX11.Nodes
                             this.FOutAAQuality[i] = tdesc.SampleDescription.Quality;
                             this.FOutArraySize[i] = tdesc.ArraySize;
                             this.FOutPointer[i] = this.FTextureIn[i][this.AssignedContext].Resource.ComPointer.ToInt32();
+                            this.FOutCreationTime[i] = this.FTextureIn[i][this.AssignedContext].Resource.CreationTime;
                         }
                         else
                         {
@@ -120,6 +125,7 @@ namespace VVVV.DX11.Nodes
             this.FOutAAQuality.SliceCount = 0;
             this.FOutArraySize.SliceCount = 0;
             this.FOutPointer.SliceCount = 0;
+            this.FOutCreationTime.SliceCount = 0;
         }
 
         private void SetDefault(int i)
@@ -132,6 +138,7 @@ namespace VVVV.DX11.Nodes
             this.FOutAAQuality[i] = -1;
             this.FOutArraySize[i] = -1;
             this.FOutPointer[i] = -1;
+            this.FOutCreationTime[i] = 0;
         }
 
 

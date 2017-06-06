@@ -33,10 +33,10 @@ namespace VVVV.DX11.Nodes.MSKinect
         private int[] colors = new int[9];
 
         [Input("Back Color", DefaultColor = new double[] { 0, 0, 0, 0 })]
-        private IDiffSpread<RGBAColor> FInBgColor;
+        protected IDiffSpread<RGBAColor> FInBgColor;
 
         [Input("Player Color", DefaultColor = new double[] { 1, 0, 0, 0 })]
-        private IDiffSpread<RGBAColor> FInPlayerColor;
+        protected IDiffSpread<RGBAColor> FInPlayerColor;
 
         public KinectPlayeTextureNode()
         {
@@ -100,7 +100,6 @@ namespace VVVV.DX11.Nodes.MSKinect
         private void DepthFrameReady(object sender, BodyIndexFrameArrivedEventArgs e)
         {
             BodyIndexFrame frame = e.FrameReference.AcquireFrame();
-
             int bg = this.backcolor;
 
             if (frame != null)
@@ -113,7 +112,7 @@ namespace VVVV.DX11.Nodes.MSKinect
                     for (int i16 = 0; i16 < 512 * 424; i16++)
                     {
                         byte player = rawdepth[i16];
-                        this.playerimage[i16] = player == 255 ? bg : this.colors[player % 9];
+                        this.playerimage[i16] = player == 255 ? bg : this.colors[player % 6];
 
                     }
                 }

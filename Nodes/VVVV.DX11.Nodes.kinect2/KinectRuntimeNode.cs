@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,53 +14,60 @@ namespace VVVV.MSKinect.Nodes
 	            Version = "Microsoft", 
 	            Author = "flateric", 
 	            Tags = "DX11",
-	            Help = "Provides access to a Kinect through the MSKinect API")]
+	            Help = "Provides access to a Kinect through the MSKinect API, supports Kinect Studio with device unplugged")]
     public class KinectRuntimeNode : IPluginEvaluate, IDisposable
     {
-        /*[Input("Index", IsSingle = true)]
-        IDiffSpread<int> FInIndex;*/
-
+        /* no multiple kinect support ahead
+        [Input("Index", IsSingle = true)]
+        IDiffSpread<int> FInIndex;
+        */
         [Input("Enable Color", IsSingle = true, DefaultValue = 1)]
-        IDiffSpread<bool> FInEnableColor;
+        protected IDiffSpread<bool> FInEnableColor;
 
         [Input("Enable IR", IsSingle = true, DefaultValue=1)]
-        IDiffSpread<bool> FInInfrared;
+        protected IDiffSpread<bool> FInInfrared;
 
         [Input("Enable Depth", IsSingle = true, DefaultValue = 1)]
-        IDiffSpread<bool> FInDepthMode;
+        protected IDiffSpread<bool> FInDepthMode;
 
         [Input("Enable Skeleton", IsSingle = true, DefaultValue = 1)]
-        IDiffSpread<bool> FInEnableSkeleton;
+        protected IDiffSpread<bool> FInEnableSkeleton;
 
         [Input("Enable Player", IsSingle = true, DefaultValue = 1)]
-        IDiffSpread<bool> FInEnablePlayer;
+        protected IDiffSpread<bool> FInEnablePlayer;
 
         [Input("Enabled", IsSingle = true)]
-        IDiffSpread<bool> FInEnabled;
+        protected IDiffSpread<bool> FInEnabled;
 
         [Input("Reset", IsBang = true)]
-        ISpread<bool> FInReset;
+        protected ISpread<bool> FInReset;
 
         [Output("Kinect Runtime", IsSingle = true)]
-        ISpread<KinectRuntime> FOutRuntime;
-
+        protected ISpread<KinectRuntime> FOutRuntime;
+        
         [Output("Kinect Count", IsSingle = true)]
-        ISpread<int> FOutKCnt;
+        protected ISpread<int> FOutKCnt;
 
         [Output("Is Available", IsSingle = true)]
-        ISpread<bool> FOutStatus;
+        protected ISpread<bool> FOutStatus;
 
         [Output("Color FOV")]
-        ISpread<Vector2D> FOutColorFOV;
+        protected ISpread<Vector2D> FOutColorFOV;
 
         [Output("Depth FOV")]
-        ISpread<Vector2D> FOutDepthFOV;
+        protected ISpread<Vector2D> FOutDepthFOV;
 
         [Output("Is Started", IsSingle = true)]
-        ISpread<bool> FOutStarted;
+        protected ISpread<bool> FOutStarted;
 
         [Output("DepthRange (cm)" )]
-        ISpread<Vector2D> FDepthrange;
+        protected ISpread<Vector2D> FDepthrange;
+
+        [Output("Depth Camera Intrinsics")]
+        protected ISpread<CameraIntrinsics> FOutDepthCameraIntrinsics;
+
+        [Output("Unique ID")]
+        protected ISpread<string> FOutKinectID;
 
         private KinectRuntime runtime = new KinectRuntime();
 
@@ -135,31 +142,43 @@ namespace VVVV.MSKinect.Nodes
                 if (this.onkinectreset)
                 {
                     this.onkinectreset = false;
-                }  
+                }
 
-
-                this.FOutStatus[0] = runtime.Runtime.IsAvailable;
+                try
+                {
+                    this.FOutStatus[0] = runtime.Runtime.IsAvailable;
+                }
+                catch 
+                {
+                    this.FOutStatus[0] = false;
+                }
                 this.FOutRuntime[0] = runtime;
                 this.FOutStarted[0] = runtime.IsStarted;
 
 
                 this.FOutColorFOV.SliceCount = 1;
                 this.FOutDepthFOV.SliceCount = 1;
+                if (runtime.Runtime != null)
+                {
 
-                this.FOutColorFOV[0] = new Vector2D(this.runtime.Runtime.ColorFrameSource.FrameDescription.HorizontalFieldOfView,
-                                                    this.runtime.Runtime.ColorFrameSource.FrameDescription.VerticalFieldOfView)  *(float)VMath.DegToCyc;
+                    this.FOutColorFOV[0] = new Vector2D(this.runtime.Runtime.ColorFrameSource.FrameDescription.HorizontalFieldOfView,
+                                                        this.runtime.Runtime.ColorFrameSource.FrameDescription.VerticalFieldOfView) * (float)VMath.DegToCyc;
 
-                this.FOutDepthFOV[0] = new Vector2D(this.runtime.Runtime.DepthFrameSource.FrameDescription.HorizontalFieldOfView,
-                                                    this.runtime.Runtime.DepthFrameSource.FrameDescription.VerticalFieldOfView)  *(float)VMath.DegToCyc;
+                    this.FOutDepthFOV[0] = new Vector2D(this.runtime.Runtime.DepthFrameSource.FrameDescription.HorizontalFieldOfView,
+                                                        this.runtime.Runtime.DepthFrameSource.FrameDescription.VerticalFieldOfView) * (float)VMath.DegToCyc;
 
-                this.FDepthrange[0] = new Vector2D( (double)this.runtime.Runtime.DepthFrameSource.DepthMinReliableDistance,
-                                                    (double)this.runtime.Runtime.DepthFrameSource.DepthMaxReliableDistance);
+                    this.FDepthrange[0] = new Vector2D((double)this.runtime.Runtime.DepthFrameSource.DepthMinReliableDistance,
+                                                        (double)this.runtime.Runtime.DepthFrameSource.DepthMaxReliableDistance);
+
+                    this.FOutDepthCameraIntrinsics[0] = this.runtime.Runtime.CoordinateMapper.GetDepthCameraIntrinsics();
+                    //runtime only reports ID of the physically connected device. It seems Kinect Tools injected stream does not report ID of the device.
+                    this.FOutKinectID[0] = this.runtime.Runtime.UniqueKinectId;
+                }
             }
 
             this.FOutKCnt[0] = 1; // KinectSensor.KinectSensors.Count;
                        
         }
-
         public void Dispose()
         {
             if (this.runtime != null)

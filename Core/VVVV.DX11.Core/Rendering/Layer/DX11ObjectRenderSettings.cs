@@ -16,21 +16,34 @@ namespace VVVV.DX11
         /// <summary>
         /// Draw Call Index (per shader)
         /// </summary>
-        public int DrawCallIndex { get; set; }
+        public int DrawCallIndex;
 
         /// <summary>
         /// World Transform
         /// </summary>
-        public Matrix WorldTransform { get; set; }
+        public Matrix WorldTransform;
 
         /// <summary>
         /// Object bounding box transform
         /// </summary>
-        public IDX11Geometry Geometry { get; set; }
+        public IDX11Geometry Geometry;
 
-        public int IterationIndex { get; set; }
+        /// <summary>
+        /// Geometry is from layer
+        /// </summary>
+#pragma warning disable 0618
+        [Obsolete("Will be replaced soon by new layout cache")]
+        public bool GeometryFromLayer;
+#pragma warning restore 0618
 
-        public int IterationCount { get; set; }
+        public int IterationIndex;
+
+        public int IterationCount;
+
+        /// <summary>
+        /// Object render state tag
+        /// </summary>
+        public object RenderStateTag;
 
     }
 }

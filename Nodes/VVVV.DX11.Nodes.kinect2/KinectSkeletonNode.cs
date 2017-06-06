@@ -21,34 +21,40 @@ namespace VVVV.MSKinect.Nodes
     public class KinectSkeletonNode : IPluginEvaluate, IPluginConnections
     {
         [Input("Kinect Runtime")]
-        private Pin<KinectRuntime> FInRuntime;
+        protected Pin<KinectRuntime> FInRuntime;
 
         [Output("Skeleton Count", IsSingle = true)]
-        private ISpread<int> FOutCount;
+        protected ISpread<int> FOutCount;
 
         [Output("User Index")]
-        private ISpread<int> FOutUserIndex;
+        protected ISpread<string> FOutUserIndex;
+
+        [Output("Short Index")]
+        protected ISpread<int> FOutShortIndex;
 
         [Output("Position")]
-        private ISpread<Vector3> FOutPosition;
+        protected ISpread<Vector3> FOutPosition;
 
         [Output("Clipping")]
-        private ISpread<Vector4> FOutClipped;
+        protected ISpread<Vector4> FOutClipped;
 
         [Output("Joint ID")]
-        private ISpread<string> FOutJointID;
+        protected ISpread<string> FOutJointID;
 
         [Output("Joint Position")]
-        private ISpread<Vector3> FOutJointPosition;
+        protected ISpread<Vector3> FOutJointPosition;
+
+        [Output("Joint Position RGB")]
+        protected ISpread<Vector2> FOutJointPositionRGB;
 
         [Output("Joint Orientation")]
-        private ISpread<Quaternion> FOutJointOrientation;
+        protected ISpread<Quaternion> FOutJointOrientation;
 
         [Output("Joint State")]
-        private ISpread<string> FOutJointState;
+        protected ISpread<string> FOutJointState;
 
         [Output("Frame Number", IsSingle = true)]
-        private ISpread<long> FOutFrameNumber;
+        protected ISpread<long> FOutFrameNumber;
 
 
         private bool FInvalidateConnect = false;
@@ -90,17 +96,16 @@ namespace VVVV.MSKinect.Nodes
                 if (this.lastframe != null)
                 {
                     List<Body> skels = new List<Body>();
-                    float z = float.MaxValue;
-                    int id = -1;
-
+                    List<int> indices = new List<int>();
                     lock (m_lock)
                     {
 
-                        foreach (Body sk in this.lastframe)
+                        for (int i = 0; i < this.lastframe.Length; i++)
                         {
-                            if (sk.IsTracked)
+                            if (this.lastframe[i].IsTracked)
                             {
-                                skels.Add(sk);
+                                skels.Add(this.lastframe[i]);
+                                indices.Add(i);
                             }
                         }
                     }
@@ -110,10 +115,12 @@ namespace VVVV.MSKinect.Nodes
 
                     this.FOutPosition.SliceCount = cnt;
                     this.FOutUserIndex.SliceCount = cnt;
+                    this.FOutShortIndex.SliceCount = cnt;
                     this.FOutClipped.SliceCount = cnt;
                     this.FOutJointPosition.SliceCount = cnt * 25;
                     this.FOutJointState.SliceCount = cnt * 25;
                     this.FOutJointID.SliceCount = cnt * 25;
+                    this.FOutJointPositionRGB.SliceCount = cnt * 25;
                     this.FOutJointOrientation.SliceCount = cnt * 25;
                     this.FOutFrameNumber[0] = this.frameid;
 
@@ -125,7 +132,8 @@ namespace VVVV.MSKinect.Nodes
 
                         Joint ce = sk.Joints[JointType.SpineBase];
                         this.FOutPosition[i] = new Vector3(ce.Position.X, ce.Position.Y, ce.Position.Z);
-                        this.FOutUserIndex[i] = (int)sk.TrackingId;
+                        this.FOutUserIndex[i] = sk.TrackingId.ToString();
+                        this.FOutShortIndex[i] = indices[i];
 
                         Vector4 clip = Vector4.Zero;
                         clip.X = Convert.ToSingle(sk.ClippedEdges.HasFlag(FrameEdges.Left));
@@ -137,12 +145,17 @@ namespace VVVV.MSKinect.Nodes
 
                         foreach (Joint joint in sk.Joints.Values)
                         {
+
+                            var jrgb = this.runtime.Runtime.CoordinateMapper.MapCameraPointToColorSpace(joint.Position);
+
                             Microsoft.Kinect.Vector4 bo = sk.JointOrientations[joint.JointType].Orientation;
                             this.FOutJointID[jc] = joint.JointType.ToString();
                             this.FOutJointPosition[jc] = new Vector3(joint.Position.X, joint.Position.Y, joint.Position.Z);
 
                             this.FOutJointOrientation[jc] = new Quaternion(bo.X, bo.Y, bo.Z, bo.W);
                             this.FOutJointState[jc] = joint.TrackingState.ToString();
+
+                            this.FOutJointPositionRGB[jc] = new Vector2(jrgb.X, jrgb.Y);
                             jc++;
                         }
                     }

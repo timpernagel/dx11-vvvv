@@ -26,6 +26,7 @@ using System.Windows.Forms;
 
 using DWriteFactory = SlimDX.DirectWrite.Factory;
 using System.IO;
+using FeralTic.DX11.Utils;
 
 namespace VVVV.DX11.Factories
 {
@@ -33,7 +34,7 @@ namespace VVVV.DX11.Factories
     [Export(typeof(DX11NodesFactory))]
     [ComVisible(false)]
     public class DX11NodesFactory : IAddonFactory, IDisposable
-	{
+    {
         private IHDEHost hdehost;
 
         private IORegistry ioreg;
@@ -42,7 +43,9 @@ namespace VVVV.DX11.Factories
         private IDX11RenderContextManager devicemanager;
         private DX11RenderManager rendermanager;
 
-        private DX11GraphBuilder<IDX11ResourceProvider> graphbuilder;
+        [Export(typeof(IDX11RenderDependencyFactory))]
+        private DX11GraphBuilder graphbuilder;
+
         private ILogger logger;
 
         [Export]
@@ -66,10 +69,15 @@ namespace VVVV.DX11.Factories
 
             DX11EnumFormatHelper.CreateNullDeviceFormat();
 
+
             this.hdehost = hdehost;
             this.ioreg = ioreg;
             this.logger = logger;
-            this.hdehost.RootNode.Removed += new Core.CollectionDelegate<INode2>(RootNode_Removed);
+
+            //Workaround for vvvv < 35.6
+            var versionProperty = hdehost.GetType().GetProperty("Version");
+            if (versionProperty == null)
+                this.hdehost.RootNode.Removed += new Core.CollectionDelegate<INode2>(RootNode_Removed);
 
             DX11ResourceRegistry reg = new DX11ResourceRegistry();
 
@@ -82,6 +90,7 @@ namespace VVVV.DX11.Factories
             this.displaymanager = new DX11DisplayManager();
 
             this.DirectWriteFactory = new DWriteFactory(SlimDX.DirectWrite.FactoryType.Shared);
+            DirectWriteFontUtils.SetFontEnum(this.hdehost, this.DirectWriteFactory);
 
             string[] args = Environment.GetCommandLineArgs();
 
@@ -96,9 +105,17 @@ namespace VVVV.DX11.Factories
                     {
                         this.devicemanager = new DX11PerMonitorDeviceManager(this.logger, this.displaymanager);
                     }
+                    else if (sl == "nvidia")
+                    {
+                        this.devicemanager = new DX11AutoAdapterDeviceManager(this.logger, this.displaymanager);
+                    }
                     else if (sl == "peradapter")
                     {
                         this.devicemanager = new DX11PerAdapterDeviceManager(this.logger, this.displaymanager);
+                    }
+                    else if (sl == "all")
+                    {
+                        this.devicemanager = new DX11AllAdapterDeviceManager(this.logger, this.displaymanager);
                     }
                     else if (sl.StartsWith("force"))
                     {
@@ -116,6 +133,21 @@ namespace VVVV.DX11.Factories
 
                         }
                     }
+                    else if (sl.StartsWith("pooled"))
+                    {
+                        sl = sl.Replace("pooled", "");
+                        try
+                        {
+                            int i = 0;
+                            int.TryParse(sl, out i);
+
+                            this.devicemanager = new DX11PooledAdapterDeviceManager(this.logger, this.displaymanager, i);
+                        }
+                        catch
+                        {
+
+                        }
+                    }
                 }
             }
 
@@ -124,7 +156,7 @@ namespace VVVV.DX11.Factories
                 this.devicemanager = new DX11AutoAdapterDeviceManager(this.logger, this.displaymanager);
             }
 
-           this.graphbuilder = new DX11GraphBuilder<IDX11ResourceProvider>(hdehost, reg);
+           this.graphbuilder = new DX11GraphBuilder(hdehost, reg);
            this.graphbuilder.RenderRequest += graphbuilder_OnRenderRequest;
            this.rendermanager = new DX11RenderManager(this.devicemanager, this.graphbuilder,this.logger);
 
@@ -132,19 +164,41 @@ namespace VVVV.DX11.Factories
             DX11GlobalDevice.RenderManager = this.rendermanager;
 
             this.BuildAAEnum();
+            this.RegisterStateEnums();
+            this.BuildVertexLayoutsEnum();
 		}
 
+        //Workaround for vvvv < 35.6
         void RootNode_Removed(Core.IViewableCollection<INode2> collection, INode2 item)
         {
-            this.devicemanager.Dispose();
+            this.devicemanager?.Dispose();
+            this.devicemanager = null;
         }
-
-
 
         private void BuildAAEnum()
         {
             string[] aa = new string[] { "1", "2", "4", "8", "16", "32" };
             this.hdehost.UpdateEnum("DX11_AASamples", "1", aa);
+        }
+
+        private void BuildVertexLayoutsEnum()
+        {
+            this.hdehost.UpdateEnum(VertexLayoutsHelpers.VertexLayoutsEnumName, "Pos3Norm3Tex2", VertexLayoutsHelpers.Entries.ToArray());
+        }
+
+        private void RegisterStateEnums()
+        {
+            string[] enums = DX11SamplerStates.Instance.StateKeys;
+            hdehost.UpdateEnum(DX11SamplerStates.Instance.EnumName, enums[0], enums);
+
+            enums = DX11BlendStates.Instance.StateKeys;
+            hdehost.UpdateEnum(DX11BlendStates.Instance.EnumName, enums[0], enums);
+
+            enums = DX11DepthStencilStates.Instance.StateKeys;
+            hdehost.UpdateEnum(DX11DepthStencilStates.Instance.EnumName, enums[0], enums);
+
+            enums = DX11RasterizerStates.Instance.StateKeys;
+            hdehost.UpdateEnum(DX11RasterizerStates.Instance.EnumName, enums[0], enums);
         }
 
         void graphbuilder_OnRenderRequest(IDX11ResourceDataRetriever sender, IPluginHost host)
@@ -241,7 +295,8 @@ namespace VVVV.DX11.Factories
 
         public void Dispose()
         {
-            Console.WriteLine("Dispose");
+            this.devicemanager?.Dispose();
+            this.devicemanager = null;
         }
     }
 }

@@ -7,8 +7,8 @@ using VVVV.PluginInterfaces.V1;
 using FeralTic.DX11;
 using FeralTic.DX11.Resources;
 using System.ComponentModel.Composition;
-using VVVV.DX11.Lib.Devices;
 using VVVV.Core.Logging;
+using VVVV.DX11.Lib.Devices;
 
 namespace VVVV.DX11.Nodes
 {
@@ -16,7 +16,7 @@ namespace VVVV.DX11.Nodes
         AutoEvaluate=true,      
         Author = "vux",
         Warnings="Doesn't suppport multicontext, experimental,non spreadable")]
-    public class FrameDelayTextureNode : IPluginEvaluate, IDX11ResourceProvider, IDisposable
+    public class FrameDelayTextureNode : IPluginEvaluate, IDX11ResourceHost, IDisposable
     {
         [Input("Texture In", IsSingle = true)]
         protected Pin<DX11Resource<DX11Texture2D>> FTextureInput;
@@ -96,7 +96,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.lasttexture != null)
             {
@@ -108,7 +108,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
 
         }

@@ -88,18 +88,17 @@ namespace VVVV.DX11.Nodes.Layers
     }
 
     [PluginInfo(Name = "ShaderNode", Category = "DX11", Version = "", Author = "vux")]
-    public unsafe class DX11ImageShaderNode : DX11BaseShaderNode,IPluginBase, IPluginEvaluate, IDisposable, IDX11ResourceProvider
+    public unsafe class DX11ImageShaderNode : DX11BaseShaderNode,IPluginBase, IPluginEvaluate, IDisposable, IDX11ResourceHost
     {
         private int tid = 0;
 
         private RenderTargetView[] nullrtvs = new RenderTargetView[8];
 
         private DX11ObjectRenderSettings objectsettings = new DX11ObjectRenderSettings();
+        private DX11ContextElement<DX11ShaderVariableCache> shaderVariableCache = new DX11ContextElement<DX11ShaderVariableCache>();
 
         private DX11ImageShaderVariableManager varmanager;
-        private Dictionary<DX11RenderContext, DX11ShaderData> deviceshaderdata = new Dictionary<DX11RenderContext, DX11ShaderData>();
-        private bool shaderupdated;
-
+        private DX11ContextElement<DX11ShaderData> deviceshaderdata = new DX11ContextElement<DX11ShaderData>();
         private int spmax = 0;
 
         private List<DX11ResourcePoolEntry<DX11RenderTarget2D>> lastframetargets = new List<DX11ResourcePoolEntry<DX11RenderTarget2D>>();
@@ -117,14 +116,14 @@ namespace VVVV.DX11.Nodes.Layers
         [Input("Default Size",DefaultValues= new double[] {256,256 },Visibility= PinVisibility.OnlyInspector)]
         protected ISpread<Vector2> FInSize;
 
+        [Input("Mips On Last Pass", DefaultValue = 0, Visibility = PinVisibility.OnlyInspector)]
+        protected ISpread<bool> FInMipLastPass;
+
         [Input("Custom Semantics", Order = 5000, Visibility = PinVisibility.OnlyInspector)]
         protected Pin<IDX11RenderSemantic> FInSemantics;
 
         [Input("Resource Semantics", Order = 5001, Visibility = PinVisibility.OnlyInspector)]
         protected Pin<DX11Resource<IDX11RenderSemantic>> FInResSemantics;
-
-        [Input("Iteration Count", Order = 5002, Visibility = PinVisibility.OnlyInspector, DefaultValue = 1)]
-        protected ISpread<int> FIter;
         #endregion
 
         #region Output Pins
@@ -137,15 +136,19 @@ namespace VVVV.DX11.Nodes.Layers
         #endregion
 
         #region Set the shader instance
-        public override void SetShader(DX11Effect shader, bool isnew)
+        public override void SetShader(DX11Effect shader, bool isnew, string fileName)
         {
+            FOutPath.SliceCount = 1;
+            FOutPath[0] = fileName;
+
             if (shader.IsCompiled)
             {
                 this.FShader = shader;
                 this.varmanager.SetShader(shader);
                 this.varmanager.RebuildTextureCache();
-
+                this.shaderVariableCache.Clear();
                 this.varmanager.RebuildPassCache(tid);
+                this.deviceshaderdata.Dispose();
             }
 
             //Only set technique if new, otherwise do it on update/evaluate
@@ -172,9 +175,6 @@ namespace VVVV.DX11.Nodes.Layers
                     this.varmanager.UpdateShaderPins();
                 }
             }
-
-
-            this.shaderupdated = true;
             this.FInvalidate = true;
         }
         #endregion
@@ -245,6 +245,8 @@ namespace VVVV.DX11.Nodes.Layers
                 this.varmanager.RebuildPassCache(tid);
             }
 
+            this.varmanager.ApplyUpdates();
+
             this.FOut.Stream.IsChanged = true;
         }
         #endregion
@@ -267,24 +269,21 @@ namespace VVVV.DX11.Nodes.Layers
         #endregion
 
         #region Update
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             Device device = context.Device;
             DeviceContext ctx = context.CurrentDeviceContext;
 
-            if (!this.deviceshaderdata.ContainsKey(context))
+            if (!this.deviceshaderdata.Contains(context))
             {
-                this.deviceshaderdata.Add(context, new DX11ShaderData(context));
-                this.deviceshaderdata[context].SetEffect(this.FShader);
+                this.deviceshaderdata[context] = new DX11ShaderData(context, this.FShader);
+            }
+            if (!this.shaderVariableCache.Contains(context))
+            {
+                this.shaderVariableCache[context] = new DX11ShaderVariableCache(context, this.deviceshaderdata[context].ShaderInstance, this.varmanager);
             }
 
             DX11ShaderData shaderdata = this.deviceshaderdata[context];
-            if (this.shaderupdated)
-            {
-                shaderdata.SetEffect(this.FShader);
-                this.shaderupdated = false;
-            }
-
             context.RenderStateStack.Push(new DX11RenderState());
 
             this.OnBeginQuery(context);
@@ -303,7 +302,6 @@ namespace VVVV.DX11.Nodes.Layers
             DX11ObjectRenderSettings or = new DX11ObjectRenderSettings();
 
             int wi, he;
-            bool preserve = false;
             DX11ResourcePoolEntry<DX11RenderTarget2D> preservedtarget = null;
             
             for (int i = 0; i < this.spmax; i++)
@@ -321,7 +319,14 @@ namespace VVVV.DX11.Nodes.Layers
                     {
                         if (this.FInUseDefaultSize[0])
                         {
-                            initial = context.DefaultTextures.WhiteTexture;
+                            if (this.FIn[i][context] != null)
+                            {
+                                initial = this.FIn[i][context];
+                            }
+                            else
+                            {
+                                initial = context.DefaultTextures.WhiteTexture;
+                            }
                             wi = (int)this.FInSize[0].X;
                             he = (int)this.FInSize[0].Y;
                         }
@@ -336,34 +341,34 @@ namespace VVVV.DX11.Nodes.Layers
                             else
                             {
                                 initial = context.DefaultTextures.WhiteTexture;
-                                wi = (int)this.FInSize[0].X;
-                                he = (int)this.FInSize[0].Y;
+                                wi = (int)this.FInSize[i].X;
+                                he = (int)this.FInSize[i].Y;
                             }
                         }
                     }
                     else
                     {
                         initial = context.DefaultTextures.WhiteTexture;
-                        wi = (int)this.FInSize[0].X;
-                        he = (int)this.FInSize[0].Y;
+                        wi = (int)this.FInSize[i].X;
+                        he = (int)this.FInSize[i].Y;
                     }
                     #endregion
 
                     DX11RenderSettings r = new DX11RenderSettings();
                     r.RenderWidth = wi;
                     r.RenderHeight = he;
-                    if (this.FInSemantics.PluginIO.IsConnected)
+                    if (this.FInSemantics.IsConnected)
                     {
                         r.CustomSemantics.AddRange(this.FInSemantics.ToArray());
                     }
-                    if (this.FInResSemantics.PluginIO.IsConnected)
+                    if (this.FInResSemantics.IsConnected)
                     {
                         r.ResourceSemantics.AddRange(this.FInResSemantics.ToArray());
                     }
 
                     this.varmanager.SetGlobalSettings(shaderdata.ShaderInstance, r);
-
-                    this.varmanager.ApplyGlobal(shaderdata.ShaderInstance);
+                    var variableCache = this.shaderVariableCache[context];
+                    variableCache.ApplyGlobals(r);
 
                     DX11Texture2D lastrt = initial;
                     DX11ResourcePoolEntry<DX11RenderTarget2D> lasttmp = null;
@@ -380,6 +385,7 @@ namespace VVVV.DX11.Nodes.Layers
                     {
                         ImageShaderPass pi = this.varmanager.passes[j];
                         EffectPass pass = tech.GetPassByIndex(j);
+                        bool isLastPass = j == tech.Description.PassCount - 1;
 
                         for (int kiter = 0; kiter < pi.IterationCount; kiter++)
                         {
@@ -399,7 +405,7 @@ namespace VVVV.DX11.Nodes.Layers
                             {
                                 fmt = pi.Format;
                             }
-                            bool mips = pi.Mips;
+                            bool mips = pi.Mips || (isLastPass && FInMipLastPass[i]);
 
                             int w, h;
                             if (j == 0)
@@ -452,7 +458,7 @@ namespace VVVV.DX11.Nodes.Layers
                             DX11RenderTarget2D rt = elem.Element;
 
 
-                            if (this.FDepthIn.PluginIO.IsConnected && pi.UseDepth)
+                            if (this.FDepthIn.IsConnected && pi.UseDepth)
                             {
                                 context.RenderTargetStack.Push(this.FDepthIn[0][context], true, elem.Element);
                             }
@@ -511,18 +517,17 @@ namespace VVVV.DX11.Nodes.Layers
                             r.RenderWidth = w;
                             r.RenderHeight = h;
                             r.BackBuffer = elem.Element;
-                            this.varmanager.ApplyGlobal(shaderdata.ShaderInstance);
 
-                            //Apply settings (note that textures swap is handled later)
-                            this.varmanager.ApplyPerObject(context, shaderdata.ShaderInstance, or, i);
-
+                            //Apply settings (we do both here, as texture size semantic might ahve 
+                            variableCache.ApplyGlobals(r);
+                            variableCache.ApplySlice(or, i);
                             //Bind last render target
                             this.BindTextureSemantic(shaderdata.ShaderInstance.Effect, "PREVIOUS", lastrt);
 
                             this.BindPassIndexSemantic(shaderdata.ShaderInstance.Effect, j);
                             this.BindPassIterIndexSemantic(shaderdata.ShaderInstance.Effect, kiter);
 
-                            if (this.FDepthIn.PluginIO.IsConnected)
+                            if (this.FDepthIn.IsConnected)
                             {
                                 if (this.FDepthIn[0].Contains(context))
                                 {
@@ -546,11 +551,10 @@ namespace VVVV.DX11.Nodes.Layers
                             }
 
                             //Generate mips if applicable
-                            if (pi.Mips) { ctx.GenerateMips(rt.SRV); }
+                            if (mips) { ctx.GenerateMips(rt.SRV); }
 
                             if (!pi.KeepTarget)
                             {
-                                preserve = false;
                                 rtlist.Add(rt);
                                 lastrt = rt;
                                 lasttmp = elem;
@@ -559,7 +563,6 @@ namespace VVVV.DX11.Nodes.Layers
                             }
                             else
                             {
-                                preserve = true;
                                 preservedtarget = elem;
                             }
 
@@ -651,30 +654,26 @@ namespace VVVV.DX11.Nodes.Layers
         #endregion
 
         #region Destroy
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
-            //this.FOutLayer[0].Dispose(OnDevice.Device);
-
-            if (this.deviceshaderdata.ContainsKey(context))
+            if (force)
             {
-                this.deviceshaderdata[context].Dispose();
-                this.deviceshaderdata.Remove(context);
+                this.deviceshaderdata.Dispose(context);
+                this.shaderVariableCache.Dispose(context);
             }
-
             foreach (DX11ResourcePoolEntry<DX11RenderTarget2D> entry in this.lastframetargets)
             {
                 entry.UnLock();
             }
+            this.lastframetargets.Clear();
         }
         #endregion
 
         #region Dispose
         public void Dispose()
         {
-            foreach (DX11ShaderData sd in this.deviceshaderdata.Values)
-            {
-                sd.Dispose();
-            }
+            this.deviceshaderdata.Dispose();
+            this.shaderVariableCache.Dispose();
 
             foreach (DX11ResourcePoolEntry<DX11RenderTarget2D> entry in this.lastframetargets)
             {

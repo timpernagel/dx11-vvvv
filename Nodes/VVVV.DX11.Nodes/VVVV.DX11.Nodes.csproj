@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(SolutionDir)\vvvv.DX11.Build.targets" />
+  <Import Project="$(SolutionDir)\vvvv.DX11.CoreImport.targets" />
   <PropertyGroup>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
@@ -9,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>VVVV.DX11.Nodes</RootNamespace>
     <AssemblyName>VVVV.DX11.Nodes</AssemblyName>
-    <OutputPath>$(OutputPath)\nodes\plugins\</OutputPath>
+    <OutputPath>$(OutputPath)\nodes\plugins\base</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -21,19 +22,71 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="VVVV.Nodes.Generic">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\$(Platform)\VVVV.Nodes.Generic.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Nodes\Buffers\ImmutableRawBufferNode.cs" />
+    <Compile Include="Nodes\Buffers\DynamicRawBufferNode.cs" />
+    <Compile Include="Nodes\Buffers\Lights\DirectionalLightBuffer.cs" />
+    <Compile Include="Nodes\Buffers\Lights\PointLightBuffer.cs" />
+    <Compile Include="Nodes\Buffers\Lights\SpotLightBuffer.cs" />
+    <Compile Include="Nodes\Buffers\ReadBackRawBufferStreamNode.cs" />
+    <Compile Include="Nodes\Geometry\DispatchIndirectBufferNode.cs" />
     <Compile Include="Nodes\Geometry\DispatchIndirect1DNode.cs" />
+    <Compile Include="Nodes\Geometry\IndexIndirectDrawerBufferNode.cs" />
     <Compile Include="Nodes\Geometry\InputElementJoinAdvancedNode.cs" />
+    <Compile Include="Nodes\Geometry\InputElementPresetNode.cs" />
+    <Compile Include="Nodes\Geometry\NullIndirectBufferDrawer.cs" />
+    <Compile Include="Nodes\Geometry\Primitives\DX11DispatcherXYNode.cs" />
+    <Compile Include="Nodes\Geometry\Primitives\DX11DispatcherXNode.cs" />
+    <Compile Include="Nodes\Geometry\Primitives\DX11SegmentZNode.cs" />
+    <Compile Include="Nodes\Geometry\RawBufferAsGeometryNode.cs" />
+    <Compile Include="Nodes\Geometry\VertexIndirectDrawerBufferNode.cs" />
+    <Compile Include="Nodes\Layers\DX11LayerClearPipelineNode.cs" />
+    <Compile Include="Nodes\Layers\DX11LayerEnabledNode.cs" />
+    <Compile Include="Nodes\Layers\DX11LayerScissorNode.cs" />
+    <Compile Include="Nodes\Layers\DX11LayerSpreadNode.cs" />
     <Compile Include="Nodes\Layers\DX11LayerSelectViewPortNode.cs" />
+    <Compile Include="Nodes\Layers\DX11LayerPixelViewportNode.cs" />
+    <Compile Include="Legacy\DX11LayerBlendFactorNode.cs" />
+    <Compile Include="Nodes\Layers\DX11LayerTagNode.cs" />
+    <Compile Include="Legacy\DX11LayerStencilRefNode.cs" />
+    <Compile Include="Nodes\Layers\DX11LayerOrderNode.cs" />
+    <Compile Include="Nodes\Layers\DX11ResetCounterNode.cs" />
+    <Compile Include="Nodes\Layers\Order\LayerGetSpreadOrderNode.cs" />
+    <Compile Include="Nodes\Layers\Order\LayerZSortOrderNode.cs" />
+    <Compile Include="Nodes\Layers\Order\LayerGetSliceOrderNode.cs" />
+    <Compile Include="Nodes\Layers\ReadonlyDepthStencilNode.cs" />
+    <Compile Include="Nodes\Layers\Space\WorldLayerNode.cs" />
+    <Compile Include="Nodes\Layers\Space\SliceviewPortNode.cs" />
+    <Compile Include="Nodes\Layers\Space\ViewPortBillboardNode.cs" />
     <Compile Include="Nodes\Renderers\Buffers\DX11BufferRendererAdvanced.cs" />
     <Compile Include="Nodes\Renderers\Buffers\DX11RawBufferRenderer.cs" />
     <Compile Include="Nodes\Renderers\Buffers\DX11StreamOutRendererNode.cs" />
+    <Compile Include="Nodes\Renderers\Graphics\DX11SpreadRendererNode.cs" />
+    <Compile Include="Nodes\Renderers\Graphics\DX11Texture1dArrayRendererNode.cs" />
+    <Compile Include="Nodes\Renderers\Graphics\DX11Texture1dRendererNode.cs" />
     <Compile Include="Nodes\Renderers\Graphics\Touch\TouchStateJoin.cs" />
+    <Compile Include="Nodes\RenderStates\Advanced\DX11TagNode.cs" />
+    <Compile Include="Nodes\RenderStates\Advanced\DX11StencilReferenceStateNode.cs" />
+    <Compile Include="Nodes\RenderStates\Advanced\DX11BlendFactorStateNode.cs" />
+    <Compile Include="Nodes\RenderStates\Advanced\DX11PerTargetBlendStateNode.cs" />
+    <Compile Include="Nodes\RenderStates\RenderStatePresetNode.cs" />
+    <Compile Include="Nodes\RenderStates\SamplerStateAnisotropicNode.cs" />
+    <Compile Include="Nodes\RenderStates\SamplerStatePresetNode.cs" />
+    <Compile Include="Nodes\Textures\1D\DynamicTexture1DColorNode.cs" />
+    <Compile Include="Nodes\Textures\1D\InfoTexture1DNode.cs" />
     <Compile Include="Nodes\Textures\1D\WriterTexture1dNode.cs" />
+    <Compile Include="Nodes\Textures\2D\PixelData.cs" />
+    <Compile Include="Nodes\Textures\Array\GetSliceDepthTextureArray.cs" />
     <Compile Include="Nodes\Textures\Array\GetSliceTextureArray.cs" />
     <Compile Include="Nodes\Textures\Array\TextureArraySetSlice.cs" />
     <Compile Include="Nodes\Textures\Array\TextureArraySetSliceNode.cs" />
+    <Compile Include="Nodes\Validators\RemoveSliceValidatorNode.cs" />
     <Compile Include="ShaderUtils.cs" />
     <EmbeddedResource Include="effects\quad.fx" />
     <Compile Include="IOleStuff.cs" />
@@ -44,14 +97,14 @@
     <Compile Include="Nodes\Buffers\ReadBackBufferNode.cs" />
     <Compile Include="Nodes\Buffers\ReadBackRawBufferNode.cs" />
     <Compile Include="Nodes\Buffers\CopyCounterNode.cs" />
-    <Compile Include="Nodes\Devices\DX11RenderContextNode.cs" />
+    <Compile Include="Nodes\Devices\InfoDX11Node.cs" />
     <Compile Include="Nodes\Generics\ConsNodes.cs" />
-    <Compile Include="Nodes\Geometry\AsVertexGeometryNode.cs" />
+    <Compile Include="Nodes\Geometry\PerVertexDrawerNode.cs" />
     <Compile Include="Nodes\Geometry\BoundingBoxGeometryNode.cs" />
     <Compile Include="Nodes\Geometry\InputElementSplitNode.cs" />
     <Compile Include="Nodes\Geometry\LayoutGeometryGetNode.cs" />
     <Compile Include="Nodes\Geometry\DX11DefaultDrawerNode.cs" />
-    <Compile Include="Nodes\Geometry\GenericInstancerNode.cs" />
+    <Compile Include="Nodes\Geometry\InstancerNode.cs" />
     <Compile Include="Nodes\Geometry\GeometryBufferJoinNode.cs" />
     <Compile Include="Nodes\Geometry\GeometryTopologyNode.cs" />
     <Compile Include="Nodes\Geometry\IndexedGeometryBufferJoinNode.cs" />
@@ -133,7 +186,7 @@
     <Compile Include="Nodes\Textures\2D\DynamicTexture2DNode.cs" />
     <Compile Include="Nodes\Textures\2D\FileTexturePoolNode.cs" />
     <Compile Include="Nodes\Textures\2D\FrameDelayTextureNode.cs" />
-    <Compile Include="Nodes\Textures\2D\FromPointerTextureNode.cs" />
+    <Compile Include="Nodes\Textures\2D\FromSharedTextureNode.cs" />
     <Compile Include="Nodes\Textures\2D\InfoTextureNode.cs" />
     <Compile Include="Nodes\Textures\2D\StencilTextureNode.cs" />
     <Compile Include="Nodes\Textures\2D\SwitchTexture2DNode.cs" />
@@ -144,7 +197,6 @@
     <Compile Include="Nodes\Textures\FileTextureBaseNode.cs" />
     <Compile Include="Nodes\Textures\FileTextureNodes.cs" />
     <Compile Include="Nodes\Utils\CameraFrustrumNode.cs" />
-    <Compile Include="Nodes\Utils\MeasureTextNode.cs" />
     <Compile Include="Nodes\Validators\FrustrumTestNode.cs" />
     <Compile Include="Nodes\Validators\SelectValidatorNode.cs" />
     <Compile Include="Nodes\Validators\ViewportValidatorNode.cs" />
@@ -153,23 +205,6 @@
     <Compile Include="Nodes\Validators\SpreadValidatorNode.cs" />
     <Compile Include="Nodes\ViewPorts\DX11ViewPortNode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Core\VVVV.DX11.Core\VVVV.DX11.Core.csproj">
-      <Project>{71C0786D-2640-4E39-AA7B-83602F36F3A3}</Project>
-      <Name>VVVV.DX11.Core</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Core\VVVV.DX11.Lib\VVVV.DX11.Lib.csproj">
-      <Project>{C6EE17BB-1F48-44EA-8131-D299BC57748C}</Project>
-      <Name>VVVV.DX11.Lib</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\FeralTic\Core\FeralTic.csproj">
-      <Project>{9EAD0F44-E6AA-4363-BE4D-D944C1D35044}</Project>
-      <Name>FeralTic</Name>
-      <Private>False</Private>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Nodes\Renderers\Graphics\DX11RendererNode.resx">
@@ -182,5 +217,8 @@
   <ItemGroup>
     <EmbeddedResource Include="effects\GenerateDispatch1D.fx" />
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>xcopy "$(SolutionDir)girlpower\nodes\plugins" "$(OutputPath)\..\" /S /R /Y /I</PostBuildEvent>
+  </PropertyGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

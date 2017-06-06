@@ -12,12 +12,20 @@ using SlimDX.Direct3D11;
 
 using FeralTic.DX11.Resources;
 using FeralTic.DX11;
+using VVVV.Core.Logging;
 
 namespace VVVV.DX11.Nodes
 {
     [PluginInfo(Name = "DynamicTexture", Category = "DX11.Texture", Version = "1d", Author = "vux")]
-    public class DynamicTexture1DNode : IPluginEvaluate, IDX11ResourceProvider, IDisposable
+    public class DynamicTexture1DNode : IPluginEvaluate, IDX11ResourceHost, IDisposable
     {
+        [Import()]
+        protected ILogger logger;
+
+        [Config("Suppress Warning", DefaultValue = 0)]
+        protected ISpread<bool> FSuppressWarning;
+
+
         [Input("Width", DefaultValue=1)]
         protected ISpread<int> FInWidth;
 
@@ -45,10 +53,14 @@ namespace VVVV.DX11.Nodes
             if (this.FApply[0])
             {
                 this.FInvalidate = true;
+                if (this.FInChannels[0] == 3 && FSuppressWarning[0] == false)
+                {
+                    logger.Log(LogType.Warning, "Using 3 channels texture format, samplers are not allowed in this case, use load only");
+                }
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.FInvalidate)
             {
@@ -106,7 +118,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext OnDevice, bool force)
+        public void Destroy(DX11RenderContext OnDevice, bool force)
         {
         }
 

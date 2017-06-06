@@ -12,9 +12,9 @@ using FeralTic.DX11;
 namespace VVVV.DX11.Nodes
 {
     [PluginInfo(Name="Semantics",Category="DX11.Layer",Version="", Author="vux")]
-    public class DX11LayerSemanticsNode : IPluginEvaluate, IDX11LayerProvider, IDX11UpdateBlocker
+    public class DX11LayerSemanticsNode : IPluginEvaluate, IDX11LayerHost
     {
-        [Input("Layer In", AutoValidate = false)]
+        [Input("Layer In")]
         protected Pin<DX11Resource<DX11Layer>> FLayerIn;
 
         [Input("Custom Semantics", Order = 5000)]
@@ -32,17 +32,12 @@ namespace VVVV.DX11.Nodes
         public void Evaluate(int SpreadMax)
         {
             if (this.FOutLayer[0] == null) { this.FOutLayer[0] = new DX11Resource<DX11Layer>(); }
-
-            if (this.FEnabled[0])
-            {
-                this.FLayerIn.Sync();
-            }
         }
 
 
         #region IDX11ResourceProvider Members
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (!this.FOutLayer[0].Contains(context))
             {
@@ -51,16 +46,16 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             this.FOutLayer[0].Dispose(context);
         }
 
-        public void Render(IPluginIO pin, DX11RenderContext context, DX11RenderSettings settings)
+        public void Render(DX11RenderContext context, DX11RenderSettings settings)
         {
             if (this.FEnabled[0])
             {
-                if (this.FLayerIn.PluginIO.IsConnected)
+                if (this.FLayerIn.IsConnected)
                 {
                     List<IDX11RenderSemantic> semantics = new List<IDX11RenderSemantic>();
                     if (this.FInSemantics.PluginIO.IsConnected)
@@ -71,13 +66,13 @@ namespace VVVV.DX11.Nodes
 
 
                     List<DX11Resource<IDX11RenderSemantic>> ressemantics = new List<DX11Resource<IDX11RenderSemantic>>();
-                    if (this.FInResSemantics.PluginIO.IsConnected)
+                    if (this.FInResSemantics.IsConnected)
                     {
                         ressemantics.AddRange(this.FInResSemantics);
                         settings.ResourceSemantics.AddRange(ressemantics);
                     }
 
-                    this.FLayerIn[0][context].Render(this.FLayerIn.PluginIO, context, settings);
+                    this.FLayerIn.RenderAll(context, settings);
 
                     foreach (IDX11RenderSemantic semantic in semantics)
                     {
@@ -92,13 +87,15 @@ namespace VVVV.DX11.Nodes
 
                 }
             }
+            else
+            {
+                if (this.FLayerIn.IsConnected)
+                {
+                    this.FLayerIn.RenderAll(context, settings);
+                }
+            }
         }
 
         #endregion
-
-        public bool Enabled
-        {
-            get { return this.FEnabled[0]; }
-        }
     }
 }

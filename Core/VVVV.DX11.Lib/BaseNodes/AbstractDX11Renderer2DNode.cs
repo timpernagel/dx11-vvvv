@@ -26,11 +26,11 @@ using FeralTic.DX11.Resources;
 
 namespace VVVV.DX11
 {
-    public abstract class AbstractDX11Renderer2DNode : IDX11RendererProvider, IPluginEvaluate, IDisposable, IDX11Queryable
+    public abstract class AbstractDX11Renderer2DNode : IDX11RendererHost, IPluginEvaluate, IDisposable, IDX11Queryable
     {
         protected IPluginHost FHost;
 
-        [Input("Layer", Order = 1,IsSingle=true)]
+        [Input("Layer", Order = 1)]
         protected Pin<DX11Resource<DX11Layer>> FInLayer;
 
         [Input("Clear", DefaultValue = 1, Order = 6)]
@@ -50,6 +50,9 @@ namespace VVVV.DX11
 
         [Input("Enable Depth Buffer", Order = 9,DefaultValue=1)]
         protected IDiffSpread<bool> FInDepthBuffer;
+
+        [Input("Clear Depth Value", Order = 9, DefaultValue = 1)]
+        protected ISpread<float> FInClearDepthValue;
 
         [Input("View", Order = 10)]
         protected IDiffSpread<Matrix> FInView;
@@ -92,9 +95,8 @@ namespace VVVV.DX11
 
         protected abstract void OnDispose();
 
-        protected virtual IDX11RWResource GetMainTarget(DX11RenderContext device) { return null; }
 
-        //protected virtual DX11Texture2D GetLastBuffer() { return null; }
+        protected virtual IDX11RWResource GetMainTarget(DX11RenderContext device) { return null; }
 
         public bool IsEnabled
         {
@@ -119,7 +121,7 @@ namespace VVVV.DX11
             this.OnEvaluate(SpreadMax);
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             Device device = context.Device;
 
@@ -127,7 +129,7 @@ namespace VVVV.DX11
 
             if (!this.renderers.ContainsKey(context))
             {
-                this.renderers.Add(context, new DX11GraphicsRenderer(this.FHost, context));
+                this.renderers.Add(context, new DX11GraphicsRenderer(context));
             }
 
             //Update what's needed
@@ -139,6 +141,15 @@ namespace VVVV.DX11
             this.updateddevices.Add(context);
         }
 
+        protected virtual void DoClear(DX11RenderContext context)
+        {
+            if (this.FInClear[0])
+            {
+                this.renderers[context].Clear(this.FInBgColor[0]);
+            }
+        }
+
+
         #region Render
         public void Render(DX11RenderContext context)
         {
@@ -147,7 +158,7 @@ namespace VVVV.DX11
             //Just in case
             if (!this.updateddevices.Contains(context))
             {
-                this.Update(null, context);
+                this.Update(context);
             }
 
             if (this.rendereddevices.Contains(context)) { return; }
@@ -172,15 +183,12 @@ namespace VVVV.DX11
 
                     if (this.FInClearDepth[0] && this.FInDepthBuffer[0])
                     {
-                        this.depthmanager.Clear(context);
+                        this.depthmanager.Clear(context, this.FInClearDepthValue[0]);
                     }
 
-                    if (this.FInClear[0])
-                    {
-                        renderer.Clear(this.FInBgColor[0]);
-                    }
+                    this.DoClear(context);
 
-                    if (this.FInLayer.PluginIO.IsConnected)
+                    if (this.FInLayer.IsConnected)
                     {
 
                         int rtmax = Math.Max(this.FInProjection.SliceCount, this.FInView.SliceCount);
@@ -197,14 +205,9 @@ namespace VVVV.DX11
                         for (int i = 0; i < rtmax; i++)
                         {
                             settings.ViewportIndex = i;
-                            settings.View = this.FInView[i];
+                            settings.ApplyTransforms(this.FInView[i], this.FInProjection[i], this.FInAspect[i], this.FInCrop[i]);
 
-                            Matrix proj = this.FInProjection[i];
-                            Matrix aspect = Matrix.Invert(this.FInAspect[i]);
-                            Matrix crop = Matrix.Invert(this.FInCrop[i]);
 
-                            settings.Projection = proj * aspect * crop;
-                            settings.ViewProjection = settings.View * settings.Projection;
                             settings.RenderWidth = this.width;
                             settings.RenderHeight = this.height;
                             settings.BackBuffer = this.GetMainTarget(context);
@@ -216,18 +219,15 @@ namespace VVVV.DX11
                                 context.RenderTargetStack.PushViewport(this.FInViewPort[i].Normalize(cw, ch));
                             }
 
-                            //Call render on all layers
-                            for (int j = 0; j < this.FInLayer.SliceCount; j++)
+                            try
                             {
-                                try
-                                {
-                                    this.FInLayer[j][context].Render(this.FInLayer.PluginIO, context, settings);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine(ex.Message);
-                                }
+                                this.FInLayer.RenderAll(context, settings);
                             }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.Message);
+                            }
+
 
                             if (viewportpop)
                             {
@@ -236,11 +236,8 @@ namespace VVVV.DX11
                         }
                     }
 
-
                     //Post render
                     this.AfterRender(renderer, context);
-
-
                 }
                 catch (Exception ex)
                 {
@@ -268,7 +265,7 @@ namespace VVVV.DX11
         }
         #endregion
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             if (this.renderers.ContainsKey(context))
             {

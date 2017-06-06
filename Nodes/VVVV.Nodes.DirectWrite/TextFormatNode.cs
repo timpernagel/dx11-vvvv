@@ -9,10 +9,10 @@ using DWriteFactory = SlimDX.DirectWrite.Factory;
 
 namespace VVVV.DX11.Nodes.Nodes.Text
 {
-    [PluginInfo(Name="TextFormat", Category="DirectWrite")]
+    [PluginInfo(Name = "TextFormat", Category = "DirectWrite", Author = "vux")]
     public class TextFormatNode : IPluginEvaluate ,IDisposable
     {
-        [Input("Font", EnumName = "SystemFonts")]
+        [Input("Font", EnumName = "DirectWrite_Font_Families")]
         protected IDiffSpread<EnumEntry> FFontInput;
 
         [Input("Font Size", DefaultValue = 12)]
@@ -30,8 +30,20 @@ namespace VVVV.DX11.Nodes.Nodes.Text
         [Input("Word Wrapping")]
         protected IDiffSpread<WordWrapping> FWordWrap;
 
+        [Input("Line Spacing Method")]
+        protected IDiffSpread<LineSpacingMethod> FMethod;
+
+        [Input("Line Spacing", DefaultValue = 12)]
+        protected IDiffSpread<float> FLineSpacing;
+
+        [Input("Baseline", DefaultValue = 12)]
+        protected IDiffSpread<int> FBaseLine;
+
         [Output("Output")]
         protected ISpread<TextFormat> FOutput;
+
+        [Output("Is Valid")]
+        protected ISpread<bool> FValid;
 
         private DWriteFactory dwFactory;
 
@@ -44,7 +56,8 @@ namespace VVVV.DX11.Nodes.Nodes.Text
         public void Evaluate(int SpreadMax)
         {
             if (this.FSize.IsChanged || this.FFontInput.IsChanged || this.FWeight.IsChanged 
-                || this.FStretch.IsChanged || this.FStyle.IsChanged || this.FWordWrap.IsChanged)
+                || this.FStretch.IsChanged || this.FStyle.IsChanged || this.FWordWrap.IsChanged
+                || this.FLineSpacing.IsChanged || this.FMethod.IsChanged || this.FBaseLine.IsChanged)
             {
                 for (int i = 0; i < this.FOutput.SliceCount; i++)
                 {
@@ -52,10 +65,30 @@ namespace VVVV.DX11.Nodes.Nodes.Text
                 }
 
                 this.FOutput.SliceCount = SpreadMax;
+                this.FValid.SliceCount = SpreadMax;
                 for (int i = 0; i < SpreadMax; i++)
                 {
-                    this.FOutput[i] = new TextFormat(this.dwFactory,this.FFontInput[i].Name, this.FWeight[i], this.FStyle[i], this.FStretch[i], FSize[i], "");
-                    this.FOutput[i].WordWrapping = this.FWordWrap[i];
+                    /*string familyName = this.FFontInput[i].Name;
+
+                    var fc = this.dwFactory.GetSystemFontCollection(false);
+                    bool exists;
+                    int idx = fc.FindFamilyName(this.FFontInput[i].Name, out exists);*/
+
+                    try
+                    {
+                        TextFormat format = new TextFormat(this.dwFactory, this.FFontInput[i].Name, this.FWeight[i], this.FStyle[i], this.FStretch[i], FSize[i], "");
+                        format.WordWrapping = this.FWordWrap[i];
+                        format.SetLineSpacing(this.FMethod[i], this.FLineSpacing[i], this.FBaseLine[i]);
+                        this.FOutput[i] = format;
+                        this.FValid[i] = true;
+                    }
+                    catch
+                    {
+                        //Set default format
+                        TextFormat format = new TextFormat(this.dwFactory, "Arial", FontWeight.Normal, FontStyle.Normal, FontStretch.Normal, 16, "");
+                        this.FOutput[i] = format;
+                        this.FValid[i] = false;
+                    }
                 }
             }
         }

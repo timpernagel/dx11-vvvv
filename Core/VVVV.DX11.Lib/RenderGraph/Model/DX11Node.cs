@@ -18,28 +18,30 @@ namespace VVVV.DX11.RenderGraph.Model
     /// </summary>
     public class DX11Node
     {
-        public DX11Node(INode hdeNode)
+        public DX11Node(INode2 hdeNode) : this(hdeNode, (IPluginHost)hdeNode.InternalCOMInterf)
         {
-            this.InputPins = new List<DX11InputPin>();
-            this.OutputPins = new List<DX11OutputPin>();
-
-            this.HdeNode = hdeNode;
-            this.Name = hdeNode.GetNodeInfo().Systemname;
-            this.Hoster = (IPluginHost)hdeNode;
         }
 
-        public DX11Node(INode hdeNode,IPluginHost hoster)
+        public DX11Node(INode2 hdeNode, IPluginHost hoster)
         {
             this.InputPins = new List<DX11InputPin>();
             this.OutputPins = new List<DX11OutputPin>();
 
-            this.HdeNode = hdeNode;
-            this.Name = hdeNode.GetNodeInfo().Systemname;
+            this.HdeNode2 = hdeNode;
+            this.HdeNode = hdeNode.InternalCOMInterf;
+            this.Name = hdeNode.NodeInfo.Systemname;
             this.Hoster = hoster;
+
+            IInternalPluginHost iip = (IInternalPluginHost)this.Hoster;
+            this.Interfaces = new DX11NodeInterfaces(iip);
+            this.VirtualConnections = new List<DX11VirtualConnection>();
         }
 
         public IPluginHost Hoster { get; protected set; }
         public INode HdeNode { get; protected set; }
+        public INode2 HdeNode2 { get; private set; }
+        public DX11NodeInterfaces Interfaces { get; private set; }
+
         public string Name { get; set; }
         public string DescriptiveName
         {
@@ -47,6 +49,20 @@ namespace VVVV.DX11.RenderGraph.Model
             {
                 return this.HdeNode.GetPin("Descriptive Name").GetSlice(0);
             }
+        }
+
+        public List<DX11VirtualConnection> VirtualConnections;
+
+        public DX11VirtualConnection GetVirtualConnection(IPin pin)
+        {
+            foreach (DX11VirtualConnection connection in this.VirtualConnections)
+            {
+                if (connection.sinkPin == pin)
+                {
+                    return connection;
+                }
+            }
+            return null;
         }
 
         public List<DX11InputPin> InputPins { get; set; }
@@ -71,35 +87,22 @@ namespace VVVV.DX11.RenderGraph.Model
         }
 
 
-        public T Instance<T>()
+        public DX11InputPin GetInput(IPin pin)
         {
-            IInternalPluginHost iip = (IInternalPluginHost)this.Hoster;
-           
-            if (iip.Plugin is PluginContainer)
+            foreach (DX11InputPin ip in this.InputPins)
             {
-                PluginContainer plugin = (PluginContainer)iip.Plugin;
-                return (T)plugin.PluginBase;
+                if (ip.HdePin == pin) { return ip; }
             }
-            else
-            {
-                return (T)iip.Plugin;
-            }
+            return null;
         }
 
-        public bool IsAssignable<T>()
+        public DX11OutputPin GetOutput(IPin pin)
         {
-            IInternalPluginHost iip = (IInternalPluginHost)this.Hoster;
-
-            if (iip.Plugin is PluginContainer)
+            foreach (DX11OutputPin ip in this.OutputPins)
             {
-                PluginContainer plugin = (PluginContainer)iip.Plugin;
-                return typeof(T).IsAssignableFrom(plugin.PluginBase.GetType());
+                if (ip.HdePin == pin) { return ip; }
             }
-            else
-            {
-                return typeof(T).IsAssignableFrom(iip.Plugin.GetType());
-            }
-  
+            return null;
         }
 
         public bool RemovePin(string name, PinDirection direction)

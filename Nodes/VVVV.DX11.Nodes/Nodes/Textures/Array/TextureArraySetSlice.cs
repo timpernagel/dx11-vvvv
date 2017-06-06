@@ -11,7 +11,7 @@ using VVVV.Utils.VMath;
 
 namespace VVVV.DX11.Nodes
 {
-    public class TextureArraySetSlice : IDisposable
+    public class TextureArraySetSlice : IDX11Resource, IDisposable
     {
         private DX11RenderContext context;
 
@@ -38,7 +38,7 @@ namespace VVVV.DX11.Nodes
         {
             format = format == SlimDX.DXGI.Format.Unknown ? texture.Format : format;
             this.rtarr.Dispose();
-            this.rtarr = new DX11RenderTextureArray(this.context, w, h, d, format);
+            this.rtarr = new DX11RenderTextureArray(this.context, w, h, d, format, true, 1);
         }
 
         public void Apply(DX11Texture2D texture, int w, int h, int d, SlimDX.DXGI.Format format, int slice)
@@ -56,7 +56,7 @@ namespace VVVV.DX11.Nodes
 
             if (this.rtarr == null)
             {
-                this.rtarr = new DX11RenderTextureArray(this.context, w, h, d, format);
+                this.rtarr = new DX11RenderTextureArray(this.context, w, h, d, format, true, 1);
             }
 
             this.shader.SelectTechnique("Render");

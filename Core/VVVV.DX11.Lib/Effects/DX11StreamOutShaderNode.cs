@@ -43,19 +43,17 @@ using System.CodeDom.Compiler;
 namespace VVVV.DX11.Nodes.Layers
 {
     [PluginInfo(Name = "ShaderNode", Category = "DX11", Version = "", Author = "vux")]
-    public unsafe class DX11StreamOutShaderNode : DX11BaseShaderNode, IPluginBase, IPluginEvaluate, IDisposable, IDX11ResourceProvider
+    public unsafe class DX11StreamOutShaderNode : DX11BaseShaderNode, IPluginBase, IPluginEvaluate, IDisposable, IDX11ResourceHost
     {
         private int tid = 0;
 
         private DX11ObjectRenderSettings objectsettings = new DX11ObjectRenderSettings();
 
         private DX11ShaderVariableManager varmanager;
-        private Dictionary<DX11RenderContext, DX11ShaderData> deviceshaderdata = new Dictionary<DX11RenderContext, DX11ShaderData>();
+        private DX11ContextElement<DX11ShaderData> deviceshaderdata = new DX11ContextElement<DX11ShaderData>();
+        private DX11ContextElement<DX11ShaderVariableCache> shaderVariableCache = new DX11ContextElement<DX11ShaderVariableCache>();
 
         private DX11RenderSettings settings = new DX11RenderSettings();
-        private bool shaderupdated;
-
-        private bool techniquechanged;
 
         private int spmax = 0;
         private int layoutsize;
@@ -92,10 +90,10 @@ namespace VVVV.DX11.Nodes.Layers
 
         #region Output Pins
 
-        [Output("Geometry Out", IsSingle=true)]
+        [Output("Geometry Out")]
         protected ISpread<DX11Resource<IDX11Geometry>> FOut;
 
-        [Output("Buffer Out", IsSingle = true)]
+        [Output("Buffer Out")]
         protected ISpread<DX11Resource<DX11RawBuffer>> FOutBuffer;
 
         [Output("Technique Valid")]
@@ -107,14 +105,19 @@ namespace VVVV.DX11.Nodes.Layers
         #endregion
 
         #region Set the shader instance
-        public override void SetShader(DX11Effect shader, bool isnew)
+        public override void SetShader(DX11Effect shader, bool isnew, string fileName)
         {
+            FOutPath.SliceCount = 1;
+            FOutPath[0] = fileName;
+            
             if (isnew) { this.FShader = shader; }
 
             if (shader.IsCompiled)
             {
                 this.FShader = shader;
                 this.varmanager.SetShader(shader);
+                this.shaderVariableCache.Clear();
+                this.deviceshaderdata.Dispose();
             }
 
             //Only set technique if new, otherwise do it on update/evaluate
@@ -141,9 +144,6 @@ namespace VVVV.DX11.Nodes.Layers
                     this.varmanager.UpdateShaderPins();
                 }
             }
-
-
-            this.shaderupdated = true;
             this.FInvalidate = true;
         }
         #endregion
@@ -173,9 +173,27 @@ namespace VVVV.DX11.Nodes.Layers
         {
             this.spmax = this.CalculateSpreadMax();
 
-            if (this.FInTechnique.IsChanged)
+            if (this.spmax == 0)
             {
-                this.techniquechanged = true;
+                if (this.FOut.SliceCount == 0) // Already 0
+                    return;
+
+                if (this.FOut[0] != null)
+                {
+                    this.FOut[0].Dispose();
+                }
+                if (this.FOutBuffer[0] != null)
+                {
+                    this.FOutBuffer[0].Dispose();
+                }
+                this.FOut.SliceCount = 0;
+                this.FOutBuffer.SliceCount = 0;
+                return;
+            }
+            else
+            {
+                this.FOutBuffer.SliceCount = 1;
+                this.FOut.SliceCount = 1;
             }
 
             if (this.FOut[0] == null)
@@ -207,13 +225,12 @@ namespace VVVV.DX11.Nodes.Layers
             if (this.FInTechnique.IsChanged)
             {
                 tid = this.FInTechnique[0].Index;
-
-                
-                //this.varmanager.RebuildPassCache(tid);
+                this.techniquechanged = true;
             }
-            this.techniquechanged = this.FInTechnique.IsChanged;
             this.FOut.Stream.IsChanged = true;
             this.FOutBuffer.Stream.IsChanged = true;
+
+            this.varmanager.ApplyUpdates();
         }
 
         #endregion
@@ -221,6 +238,9 @@ namespace VVVV.DX11.Nodes.Layers
         #region Calculate Spread Max
         private int CalculateSpreadMax()
         {
+            if (this.FIn.SliceCount == 0 || this.FInView.SliceCount == 0 || this.FInProjection.SliceCount == 0)
+                return 0;
+
             int max = this.varmanager.CalculateSpreadMax();
 
             if (max == 0 || this.FIn.SliceCount == 0)
@@ -236,7 +256,7 @@ namespace VVVV.DX11.Nodes.Layers
         #endregion
 
         #region Update
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.CalculateSpreadMax() == 0)
             {
@@ -246,21 +266,20 @@ namespace VVVV.DX11.Nodes.Layers
             Device device = context.Device;
             DeviceContext ctx = context.CurrentDeviceContext;
 
-            if (!this.deviceshaderdata.ContainsKey(context))
+            if (!this.deviceshaderdata.Contains(context))
             {
-                this.deviceshaderdata.Add(context, new DX11ShaderData(context));
-                this.deviceshaderdata[context].SetEffect(this.FShader);
+                this.deviceshaderdata[context]  = new DX11ShaderData(context, this.FShader);
+            }
+            if (!this.shaderVariableCache.Contains(context))
+            {
+                this.shaderVariableCache[context] = new DX11ShaderVariableCache(context, this.deviceshaderdata[context].ShaderInstance, this.varmanager);
             }
 
             DX11ShaderData shaderdata = this.deviceshaderdata[context];
-            if (this.shaderupdated)
-            {
-                shaderdata.SetEffect(this.FShader);
-                shaderdata.Update(this.FInTechnique[0].Index, 0, this.FIn);
-            }
-
+            shaderdata.Update(this.FInTechnique[0].Index, 0, this.FIn);
+            
             bool customlayout = this.FInLayout.PluginIO.IsConnected || this.FInAutoLayout[0];
-            if (this.techniquechanged || this.FInLayout.IsChanged || this.FInAutoLayout.IsChanged || this.shaderupdated)
+            if (this.techniquechanged || this.FInLayout.IsChanged || this.FInAutoLayout.IsChanged)
             {
                 elems = null;
                 int size = 0;
@@ -278,8 +297,6 @@ namespace VVVV.DX11.Nodes.Layers
                 }
                 this.layoutsize = size;
             }
-
-            this.shaderupdated = false;
 
             if (this.FInEnabled[0] && this.FIn.PluginIO.IsConnected)
             {
@@ -316,7 +333,8 @@ namespace VVVV.DX11.Nodes.Layers
                         this.settings.ResourceSemantics.AddRange(this.FInResSemantics.ToArray());
                     }
 
-                    this.varmanager.ApplyGlobal(shaderdata.ShaderInstance);
+                    var variableCache = this.shaderVariableCache[context];
+                    variableCache.ApplyGlobals(settings);
 
                     if (this.clone == null || this.FIn.IsChanged || this.FInAsAuto.IsChanged || this.FInMaxElements.IsChanged || this.FInLayout.IsChanged || this.FInAutoLayout.IsChanged)
                     {
@@ -481,9 +499,7 @@ namespace VVVV.DX11.Nodes.Layers
                     ors.DrawCallIndex = 0;
                     ors.Geometry = this.FIn[0][context];
                     ors.WorldTransform = Matrix.Identity;
-
-                    this.varmanager.ApplyPerObject(context, shaderdata.ShaderInstance, ors, 0);
-
+                    variableCache.ApplySlice(ors, 0);
 
                     shaderdata.ApplyPass(ctx);
 
@@ -513,12 +529,12 @@ namespace VVVV.DX11.Nodes.Layers
 
 
         #region Destroy
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
-            if (this.deviceshaderdata.ContainsKey(context))
+            if (force)
             {
-                this.deviceshaderdata[context].Dispose();
-                this.deviceshaderdata.Remove(context);
+                this.deviceshaderdata.Dispose(context);
+                this.shaderVariableCache.Dispose(context);
             }
         }
         #endregion
@@ -526,7 +542,8 @@ namespace VVVV.DX11.Nodes.Layers
         #region Dispose
         public void Dispose()
         {
-            //if (this.effect != null) { this.effect.Dispose(); }
+            this.deviceshaderdata.Dispose();
+            this.shaderVariableCache.Dispose();
         }
         #endregion
 

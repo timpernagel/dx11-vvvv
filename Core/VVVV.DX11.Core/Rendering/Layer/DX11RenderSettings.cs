@@ -12,7 +12,7 @@ using VVVV.DX11.Effects;
 
 namespace VVVV.DX11
 {
-    public enum eRenderHint { Forward, MRT, Shadow, Overlay, Collector }
+    public enum eRenderHint { Forward, MRT, Shadow, Overlay, Collector, ApplyOnly }
 
 
     public partial class DX11RenderSettings
@@ -24,22 +24,33 @@ namespace VVVV.DX11
             this.Aspect = Matrix.Identity;
             this.Crop = Matrix.Identity;
             this.ViewProjection = Matrix.Identity;
+            this.RawProjection = Matrix.Identity;
             this.CustomSemantics = new List<IDX11RenderSemantic>();
             this.ObjectValidators = new List<IDX11ObjectValidator>();
             this.ResourceSemantics = new List<DX11Resource<IDX11RenderSemantic>>();
+            this.LayerOrder = null;
             this.RenderSpace = new DX11RenderSpace();
-            this.PrefferedTechnique = "";
+            this.PreferredTechniques = new List<string>();
             this.ViewportCount = 1;
             this.ViewportIndex = 0;
             this.RenderHint = eRenderHint.Forward;
             this.SceneDescriptor = new DX11RenderScene();
+            this.WorldTransform = Matrix.Identity;
         }
+
+        public Matrix WorldTransform;
 
         public DX11RenderSpace RenderSpace { get; set; }
 
         public eRenderHint RenderHint { get; set; }
 
         public DX11RenderScene SceneDescriptor { get; set; }
+
+
+        /// <summary>
+        /// Arbitrary tag to set a custom object for this layer
+        /// </summary>
+        public object Tag { get; set; }
 
         /// <summary>
         /// Renderer Width
@@ -72,16 +83,21 @@ namespace VVVV.DX11
         /// </summary>
         public bool PreserveShaderStages { get; set; }
 
+        public List<string> PreferredTechniques { get; set; }
+
         public List<IDX11RenderSemantic> CustomSemantics { get; set; }
 
         public List<DX11Resource<IDX11RenderSemantic>> ResourceSemantics { get; set; }
 
         public List<IDX11ObjectValidator> ObjectValidators { get; set; }
 
+        public IDX11LayerOrder LayerOrder { get; set; }
+
         public bool ValidateObject(DX11ObjectRenderSettings obj)
         {
-            foreach (IDX11ObjectValidator objval in this.ObjectValidators)
+            for (int i = 0; i < this.ObjectValidators.Count; i++)
             {
+                IDX11ObjectValidator objval = this.ObjectValidators[i];
                 if (objval.Enabled)
                 {
                     if (!objval.Validate(obj)) { return false; }
@@ -92,20 +108,35 @@ namespace VVVV.DX11
 
         public bool ApplySemantics(DX11ShaderInstance instance, List<IDX11CustomRenderVariable> variables)
         {
-            foreach (IDX11RenderSemantic semantic in this.CustomSemantics)
+            for (int i = 0; i < this.CustomSemantics.Count; i++)
             {
-                if (!semantic.Apply(instance, variables)) { return false; }
+                if (!this.CustomSemantics[i].Apply(instance, variables)) { return false; }
             }
 
-            foreach (DX11Resource<IDX11RenderSemantic> semantic in this.ResourceSemantics)
+            for (int i = 0; i < this.ResourceSemantics.Count; i++)
             {
-                if (semantic[instance.RenderContext] != null)
-                {
-                    if (!semantic[instance.RenderContext].Apply(instance, variables)) { return false; }
-                }
+                if (!this.ResourceSemantics[i][instance.RenderContext].Apply(instance, variables)) { return false; }
             }
 
             return true;
+        }
+
+        public int GetPreferredTechnique(DX11Effect shader)
+        {
+            string[] techniqueNames = shader.TechniqueNames;
+
+            foreach (string pref in this.PreferredTechniques)
+            {
+                for (int i = 0; i < techniqueNames.Length; ++i)
+                {
+                    if (techniqueNames[i].ToLower() == pref)
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>
@@ -133,7 +164,5 @@ namespace VVVV.DX11
         public int CounterValue { get; set; }
 
         public bool DepthOnly { get; set; }
-
-        public string PrefferedTechnique { get; set; }
     }
 }

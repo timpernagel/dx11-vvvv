@@ -3,36 +3,29 @@ using System.Collections.Generic;
 using System.Text;
 
 using BulletSharp;
+using VVVV.Bullet.DataTypes;
 using VVVV.DataTypes.Bullet;
 using VVVV.Hosting.Pins.Input;
 using VVVV.PluginInterfaces.V2;
 using VVVV.Utils.VMath;
+using VVVV.Bullet.Core;
 
 namespace VVVV.Nodes.Bullet
 {
 	public abstract class AbstractBulletRigidShapeNode : IPluginEvaluate
 	{
 		#region Pins
-		[Input("Position",DefaultValues=new double[] { 0,0,0})]
-		protected IDiffSpread<Vector3D> FTranslate;
-
-		[Input("Rotation", DefaultValues = new double[] { 0, 0, 0,1 })]
-		protected IDiffSpread<Vector4D> FRotate;
+		[Input("Pose", CheckIfChanged =true)]
+		protected Pin<RigidBodyPose> FPose;
 
 		[Input("Scaling", DefaultValues = new double[] { 1.0, 1.0,1.0 })]
 		protected IDiffSpread<Vector3D> FScaling;
 
-		[Input("Mass", DefaultValue=1.0)]
-		protected IDiffSpread<float> FMass;
-
 		[Input("Custom")]
 		protected IDiffSpread<string> FCustom;
 
-		[Input("Custom Object")]
-		protected IDiffSpread<ICloneable> FCustomObj;
-
 		[Output("Shape")]
-		protected ISpread<AbstractRigidShapeDefinition> FShapes;
+		protected ISpread<RigidShapeDefinitionBase> FShapes;
 		#endregion
 
 		#region Evaluate
@@ -44,9 +37,7 @@ namespace VVVV.Nodes.Bullet
 			get
 			{
 				return this.FCustom.IsChanged
-					|| this.FCustomObj.IsChanged
-					|| this.FMass.IsChanged
-					|| this.FRotate.IsChanged
+					|| this.FPose.IsChanged
 					|| this.FScaling.IsChanged;
 			}
 		}
@@ -55,23 +46,19 @@ namespace VVVV.Nodes.Bullet
 		{
 			get
 			{
-				return ArrayMax.Max(this.FCustom.SliceCount,
-					this.FCustomObj.SliceCount,
-					this.FMass.SliceCount,
-					this.FRotate.SliceCount,
-					this.FScaling.SliceCount);
+				return SpreadUtils.SpreadMax(this.FCustom,
+					this.FPose,
+					this.FScaling);
 			}
 		}
 		#endregion
 
 		#region Set Local Transform
-		protected void SetBaseParams(AbstractRigidShapeDefinition sd, int sliceindex)
+		protected void SetBaseParams(RigidShapeDefinitionBase sd, int sliceindex)
 		{
-			sd.Translation = this.FTranslate[sliceindex].ToBulletVector();
-			sd.Rotation = this.FRotate[sliceindex].ToBulletQuaternion();
+            sd.Pose = FPose.IsConnected ? FPose[sliceindex] : RigidBodyPose.Default;
 			sd.Scaling = this.FScaling[sliceindex].Abs().ToBulletVector();
 			sd.CustomString = this.FCustom[sliceindex];
-			sd.CustomObject = this.FCustomObj[sliceindex];
 		}
 		#endregion
 	}

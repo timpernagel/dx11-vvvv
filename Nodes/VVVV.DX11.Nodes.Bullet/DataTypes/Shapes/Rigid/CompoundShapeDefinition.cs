@@ -1,26 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-
 using BulletSharp;
-
-using SlimDX.Direct3D9;
-
 using VVVV.Internals.Bullet;
-using VVVV.Internals.Bullet.EX9;
-
 
 namespace VVVV.DataTypes.Bullet
 {
 	public class CompoundShapeDefinition : AbstractRigidShapeDefinition
 	{
 		private List<AbstractRigidShapeDefinition> children;
-		//private float mass;
 
 		public CompoundShapeDefinition(List<AbstractRigidShapeDefinition> children)
 		{
 			this.children = children;
-			//this.mass = mass;
 		}
 
 		public List<AbstractRigidShapeDefinition> Children
@@ -59,7 +51,6 @@ namespace VVVV.DataTypes.Bullet
 			}
 		}
 
-
 		protected override CollisionShape CreateShape()
 		{
 			CompoundShape shape = new CompoundShape();
@@ -68,25 +59,9 @@ namespace VVVV.DataTypes.Bullet
 				ShapeCustomData sc = new ShapeCustomData();
 				sc.Id = 0;
 				sc.ShapeDef = shapedef;
-
-				Matrix tr = Matrix.Translation(shapedef.Translation);
-				Matrix rot = Matrix.RotationQuaternion(shapedef.Rotation);
-
-				shape.AddChildShape(Matrix.Multiply(rot, tr), shapedef.GetShape(sc));
+				shape.AddChildShape((Matrix)shapedef.Pose , shapedef.GetShape(sc));
 			}
 			return shape;
-		}
-
-		protected override BulletMesh CreateMesh(Device device)
-		{
-			/*List<Mesh> meshes = new List<Mesh>();
-			foreach (AbstractRigidShapeDefinition def in this.children)
-			{
-				meshes.AddRange(def.GetMesh(device).Meshes);
-			}
-
-			return new BulletMesh(meshes);*/
-            return null;
 		}
 	}
 }

@@ -10,8 +10,8 @@ namespace VVVV.DX11
     /// <summary>
     /// Layer need to provide additional interface
     /// </summary>
-    public interface IDX11LayerProvider : IDX11ResourceProvider
+    public interface IDX11LayerHost : IDX11ResourceHost
     {
-        
+
     }
 }

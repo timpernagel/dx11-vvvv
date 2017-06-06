@@ -12,18 +12,15 @@ using SlimDX.Direct3D11;
 using FeralTic.DX11.Resources;
 using FeralTic.DX11;
 
-namespace VVVV.DX11.Nodes.Assimp
+namespace VVVV.DX11.Nodes.AssetImport
 {
     [PluginInfo(Name="Mesh",Category="DX11.Geometry",Version="Assimp",Author="vux,flateric")]
-    public class AssimpMeshNode : IPluginEvaluate,IDisposable,IDX11ResourceProvider
+    public class AssimpMeshNode : IPluginEvaluate,IDisposable,IDX11ResourceHost
     {
         [Input("Scene",IsSingle=true)]
         protected IDiffSpread<AssimpScene> FInScene;
 
-        [Input("Mesh Index", IsSingle = true)]
-        protected IDiffSpread<int> FInMeshIdx;
-
-        [Output("Output", Order = 5)]
+        [Output("Output")]
         protected Pin<DX11Resource<DX11IndexedGeometry>> FOutGeom;
 
         [Output("Bone Names")]
@@ -56,7 +53,7 @@ namespace VVVV.DX11.Nodes.Assimp
         {
             
             this.FInvalidate = false;
-            if (this.FInScene.IsChanged || this.FInMeshIdx.IsChanged)
+            if (this.FInScene.IsChanged)
             {
                 //Destroy old mesh
                 for (int i = 0; i < this.FOutGeom.SliceCount; i++)
@@ -109,7 +106,7 @@ namespace VVVV.DX11.Nodes.Assimp
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
 
             if (this.FInvalidate || !this.FOutGeom[0].Contains(context))
@@ -164,21 +161,15 @@ namespace VVVV.DX11.Nodes.Assimp
             }          
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
-            for (int i = 0; i < this.FOutGeom.SliceCount; i++)
-            {
-                if (this.FOutGeom[i] != null) { this.FOutGeom[i].Dispose(context); }
-            }
+            this.FOutGeom.SafeDisposeAll(context);
         }
 
         #region IDisposable Members
         public void Dispose()
         {
-            for (int i = 0; i < this.FOutGeom.SliceCount; i++)
-            {
-                if (this.FOutGeom[i] != null) { this.FOutGeom[i].Dispose(); }
-            }
+            this.FOutGeom.SafeDisposeAll();
         }
         #endregion
 

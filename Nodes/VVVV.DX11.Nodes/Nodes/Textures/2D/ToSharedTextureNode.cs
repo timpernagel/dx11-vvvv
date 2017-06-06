@@ -7,9 +7,6 @@ using VVVV.PluginInterfaces.V2;
 using VVVV.PluginInterfaces.V1;
 
 using SlimDX.Direct3D11;
-
-using VVVV.DX11.Lib.Devices;
-
 using System.ComponentModel.Composition;
 using FeralTic.DX11.Resources;
 using FeralTic.DX11;
@@ -20,16 +17,14 @@ namespace VVVV.DX11.Nodes.Textures
     public class ToSharedTextureNode : IPluginEvaluate, IDX11ResourceDataRetriever, IDisposable
     {
         [Import()]
-        IPluginHost FHost;
+        protected IPluginHost FHost;
 
         [Input("Texture In", IsSingle=true)]
-        Pin<DX11Resource<DX11Texture2D>> FTextureIn;
+        protected Pin<DX11Resource<DX11Texture2D>> FTextureIn;
 
         [Output("Pointer",IsSingle=true, AsInt=true)]
-        ISpread<long> FPointer;
+        protected ISpread<long> FPointer;
 
-        private bool FRendered = false;
-        private bool FUpdated = false;
         private Texture2D tex = null;
         private SlimDX.DXGI.Resource SharedResource = null;
 
@@ -121,16 +116,9 @@ namespace VVVV.DX11.Nodes.Textures
             this.FPointer[i] = 0;
         }
 
-        public void Prepare()
-        {
-            this.FUpdated = false;
-            this.FRendered = false;
-        }
-
-
         public void Dispose()
         {
-            try { tex.Dispose(); }
+            try { tex?.Dispose(); }
             catch { }
         }
 

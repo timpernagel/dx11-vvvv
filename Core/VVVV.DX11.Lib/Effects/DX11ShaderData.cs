@@ -18,7 +18,7 @@ using SlimDX.D3DCompiler;
 
 namespace VVVV.DX11.Lib.Effects
 {
-    public class DX11ShaderData : IDisposable
+    public class DX11ShaderData : IDX11Resource, IDisposable
     {
         private DX11RenderContext context;
 
@@ -26,10 +26,16 @@ namespace VVVV.DX11.Lib.Effects
 
         private EffectTechnique technique;
         private EffectPass pass;
+        private PrimitiveTopology forcedTopology = PrimitiveTopology.Undefined;
 
         private DX11Effect shader;
 
         //Geometry/Layout Cache
+        private IDX11Geometry geometryFromLayer;
+        private InputLayout inputLayoutForLayerGeometry;
+        private bool geometryLayoutValid;
+
+
         private List<InputLayout> layouts = new List<InputLayout>();
         private List<bool> layoutvalid = new List<bool>();
         private List<string> layoutmsg = new List<string>();
@@ -46,15 +52,24 @@ namespace VVVV.DX11.Lib.Effects
 
         public DX11ShaderInstance ShaderInstance { get { return this.shaderinstance; } }
 
-        public DX11ShaderData(DX11RenderContext context)
+        public int PassCount
+        {
+            get
+            {
+                return this.technique.Description.PassCount;
+            }
+        }
+
+        public DX11ShaderData(DX11RenderContext context, DX11Effect effect)
         {
             this.context = context;
             this.passid = 0;
             this.techid = 0;
+            this.SetEffect(effect);
         }
 
         #region Set Effect
-        public void SetEffect(DX11Effect shader)
+        private void SetEffect(DX11Effect shader)
         {
             //Create
             if (this.shader == null)
@@ -203,6 +218,7 @@ namespace VVVV.DX11.Lib.Effects
         {
             this.technique = this.shaderinstance.Effect.GetTechniqueByIndex(this.techid);
             this.pass = this.technique.GetPassByIndex(this.passid);
+            this.forcedTopology = pass.Topology();
         }
 
         public bool IsLayoutValid(int slice)
@@ -210,15 +226,93 @@ namespace VVVV.DX11.Lib.Effects
             return this.layoutvalid[slice % this.layoutvalid.Count];
         }
 
+        public bool SetInputAssemblerFromLayer(DeviceContext ctx, IDX11Geometry geom, int slice)
+        {
+            if (this.geometryFromLayer != geom)
+            {
+                if(this.inputLayoutForLayerGeometry != null)
+                {
+                    this.inputLayoutForLayerGeometry.Dispose();
+                    this.inputLayoutForLayerGeometry = null;
+                }
+            }
+
+            this.geometryFromLayer = geom;
+
+            if (geom == null)
+            {
+                geometryLayoutValid = false;
+                return false;
+            }
+
+            if (this.inputLayoutForLayerGeometry == null)
+            {
+                try
+                {
+                    if (pass.Description.Signature != null)
+                    {
+                        this.inputLayoutForLayerGeometry = new InputLayout(this.context.Device, pass.Description.Signature, geom.InputLayout);
+                        geom.Bind(this.inputLayoutForLayerGeometry);
+                        if (this.forcedTopology != PrimitiveTopology.Undefined)
+                        {
+                            ctx.InputAssembler.PrimitiveTopology = this.forcedTopology;
+                        }
+                        geometryLayoutValid = true;
+                        return true;
+                    }
+                    else
+                    {
+                        geometryLayoutValid = true;
+                        geom.Bind(null);
+                        if (this.forcedTopology != PrimitiveTopology.Undefined)
+                        {
+                            ctx.InputAssembler.PrimitiveTopology = this.forcedTopology;
+                        }
+                        geometryLayoutValid = true;
+                        return true;
+                    }
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (this.geometryLayoutValid)
+                {
+                    geom.Bind(this.inputLayoutForLayerGeometry);
+                    if (this.forcedTopology != PrimitiveTopology.Undefined)
+                    {
+                        ctx.InputAssembler.PrimitiveTopology = this.forcedTopology;
+                    }
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+ 
+            }
+
+
+        }
+
+
         public void SetInputAssembler(DeviceContext ctx, IDX11Geometry geom, int slice)
         {
             geom.Bind(this.layouts[slice % this.layouts.Count]);
+            if (this.forcedTopology != PrimitiveTopology.Undefined)
+            {
+                ctx.InputAssembler.PrimitiveTopology = this.forcedTopology;
+            }
         }
 
         #region Apply Pass
-        public void ApplyPass(DeviceContext ctx)
+        public void ApplyPass(DeviceContext ctx, int passIndex= 0)
         {
-            this.shaderinstance.ApplyPass(this.pass);
+            var cpass = this.technique.GetPassByIndex(passIndex);
+            this.shaderinstance.ApplyPass(cpass);
         }
         #endregion
     }

@@ -5,6 +5,8 @@ using System.Text;
 using SlimDX.Direct3D11;
 using VVVV.DX11.Internals.Effects.Pins;
 using VVVV.DX11.Lib.Effects.Pins;
+using FeralTic.Utils;
+using FeralTic;
 
 namespace VVVV.DX11
 {
@@ -21,6 +23,41 @@ namespace VVVV.DX11
                 }
             }
             return name;
+        }
+
+        public static AspectRatioMode AspectMode(this EffectVariable var)
+        {
+            if (var.GetAnnotationByName("aspectmode") != null)
+            {
+                if (var.GetAnnotationByName("aspectmode").AsString() != null)
+                {
+                    string mode = var.GetAnnotationByName("aspectmode").AsString().GetString();
+
+                    AspectRatioMode aspectMode;
+                    if (Enum.TryParse<AspectRatioMode>(mode, out aspectMode))
+                    {
+                        return aspectMode;
+                    }
+                    else
+                    {
+                        return AspectRatioMode.FitIn;
+                    }
+                }
+            }
+            return AspectRatioMode.FitIn;
+        }
+
+        public static bool Reference(this EffectVariable var, string variableName)
+        {
+            if (var.GetAnnotationByName("ref") != null)
+            {
+                if (var.GetAnnotationByName("ref").AsString() != null)
+                {
+                    string name = var.GetAnnotationByName("ref").AsString().GetString();
+                    return name == variableName;
+                }
+            }
+            return false;
         }
 
         public static bool Visible(this EffectVariable var)
@@ -138,6 +175,25 @@ namespace VVVV.DX11
                 }
             }
             return result;
+        }
+
+        public static PrimitiveTopology Topology(this EffectPass var)
+        {
+            if (var.GetAnnotationByName("topology") != null)
+            {
+                if (var.GetAnnotationByName("topology").AsString() != null)
+                {
+                    try
+                    {
+                        return (PrimitiveTopology)Enum.Parse(typeof(PrimitiveTopology), var.GetAnnotationByName("topology").AsString().GetString(), true);
+                    }
+                    catch
+                    {
+                        return PrimitiveTopology.Undefined;
+                    }
+                }
+            }
+            return PrimitiveTopology.Undefined;
         }
 
         public static string LinkClassesStr(this EffectVariable var)

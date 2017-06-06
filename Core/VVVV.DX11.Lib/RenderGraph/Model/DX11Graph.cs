@@ -11,17 +11,53 @@ namespace VVVV.DX11.RenderGraph.Model
 {
     public class DX11Graph
     {
+        private List<DX11Node> nodes = new List<DX11Node>();
+        private List<DX11Node> renderwindows = new List<DX11Node>();
+        private List<DX11Node> renderStartPoints = new List<DX11Node>();
+
         public DX11Graph()
         {
-            this.Nodes = new List<DX11Node>();
 
         }
 
-        public List<DX11Node> Nodes { get; set; }
+        public List<DX11Node> Nodes
+        {
+            get { return this.nodes; }
+        }
+
+        public List<DX11Node> RenderWindows
+        {
+            get { return this.renderwindows; }
+        }
+
+        public List<DX11Node> RenderStartPoints
+        {
+            get { return this.renderStartPoints; }
+        }
+
+        public void AddNode(DX11Node node)
+        {
+            this.nodes.Add(node);
+            if (node.Interfaces.IsRenderWindow)
+            {
+                this.renderwindows.Add(node);
+            }
+            if (node.Interfaces.IsRenderStartPoint)
+            {
+                this.renderStartPoints.Add(node);
+            }
+        }
+
+        public void RemoveNode(DX11Node node)
+        {
+            this.nodes.Remove(node);
+            this.renderwindows.Remove(node);
+            this.renderStartPoints.Remove(node);
+        }
 
         public DX11Node FindNode(INode2 hdenode)
         {
-            foreach (DX11Node n in this.Nodes)
+            foreach (DX11Node n in this.nodes)
             {
                 if (n.HdeNode == hdenode.InternalCOMInterf)
                 {
@@ -33,7 +69,7 @@ namespace VVVV.DX11.RenderGraph.Model
 
         public DX11Node FindNode(INode hdenode)
         {
-            foreach (DX11Node n in this.Nodes)
+            foreach (DX11Node n in this.nodes)
             {
                 if (n.HdeNode == hdenode)
                 {
@@ -45,7 +81,7 @@ namespace VVVV.DX11.RenderGraph.Model
 
         public DX11Node FindNode(IPluginHost host)
         {
-            foreach (DX11Node n in this.Nodes)
+            foreach (DX11Node n in this.nodes)
             {
                 if (n.Hoster == host)
                 {
@@ -57,7 +93,7 @@ namespace VVVV.DX11.RenderGraph.Model
 
         public DX11Pin FindPin(IPin hdepin)
         {
-            foreach (DX11Node n in this.Nodes)
+            foreach (DX11Node n in this.nodes)
             {
                 foreach (DX11InputPin i in n.InputPins)
                 {

@@ -138,8 +138,10 @@ namespace VVVV.DX11.Lib.RenderGraph
                         //In case node has been deleted, we already called dispose
                         if (this.graph.Nodes.Contains(unused.ParentNode))
                         {
-                            IDX11ResourceProvider provider = unused.ParentNode.Instance<IDX11ResourceProvider>();
-                            provider.Destroy(unused.PluginIO, this.context, false);
+                            if (unused.ParentNode.Interfaces.IsResourceHost)
+                            {
+                                unused.ParentNode.Interfaces.ResourceHost.Destroy(this.context, false);
+                            }
                         }
 
                     }
@@ -164,9 +166,9 @@ namespace VVVV.DX11.Lib.RenderGraph
             if (this.processed.Contains(node)) { return; }
 
             //Node can block processing and do early graph cut
-            if (node.IsAssignable<IDX11UpdateBlocker>())
+            if (node.Interfaces.IsUpdateBlocker)
             {
-                if (!node.Instance<IDX11UpdateBlocker>().Enabled) 
+                if (!node.Interfaces.UpdateBlocker.Enabled) 
                 {
                     //Add to processed list and early exit on branch.
                     this.processed.Add(node);
@@ -174,18 +176,24 @@ namespace VVVV.DX11.Lib.RenderGraph
                 }
             }
 
-            //Got to all parents recursively (eg: make sure all is updated)
-            foreach (DX11InputPin ip in node.InputPins)
+            for (int i = 0; i < node.InputPins.Count; i++)
             {
+                DX11InputPin ip = node.InputPins[i];
                 if (ip.IsConnected && (ip.ParentPin.IsFeedBackPin == false))
                 {
                     this.ProcessNode(ip.ParentPin.ParentNode);
                 }
             }
+            for (int i = 0; i < node.VirtualConnections.Count; i++)
+            {
+                this.ProcessNode(node.VirtualConnections[i].sourceNode);
+            }
+
 
             //Call Update
-            foreach (DX11InputPin ip in node.InputPins)
+            for (int i = 0; i < node.InputPins.Count; i++)
             {
+                DX11InputPin ip = node.InputPins[i];
                 if (ip.IsConnected)
                 {
                     DX11OutputPin parent = ip.ParentPin;
@@ -194,32 +202,27 @@ namespace VVVV.DX11.Lib.RenderGraph
                     {
                         DX11Node source = parent.ParentNode;
 
-                        IDX11ResourceProvider provider = source.Instance<IDX11ResourceProvider>();
-
                         try
                         {
-                            provider.Update(parent.PluginIO, this.context);
-
-                            if (source.IsAssignable<IDX11MultiResourceProvider>())
+                            if (source.Interfaces.IsResourceHost)
                             {
+                                source.Interfaces.ResourceHost.Update(this.context);
                                 if (this.DoNotDestroy == false)
                                 {
                                     //Mark all output pins as processed
                                     foreach (DX11OutputPin outpin in source.OutputPins)
                                     {
                                         this.thisframepins.Add(outpin);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (this.DoNotDestroy == false)
-                                {
-                                    //Mark output pin as used this frame
-                                    this.thisframepins.Add(parent);
-                                }
-                            }
 
+                                        //Remove from old cache if applicable
+                                        if (this.lastframepins.Contains(outpin))
+                                        {
+                                            this.lastframepins.Remove(outpin);
+                                        }
+                                    }
+
+                                }
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -229,26 +232,21 @@ namespace VVVV.DX11.Lib.RenderGraph
                             this.logger.Log(LogType.Message, ex.StackTrace);
                         }
 
-                        if (this.DoNotDestroy == false)
-                        {
-                            //Remove from old cache if applicable
-                            if (this.lastframepins.Contains(parent))
-                            {
-                                this.lastframepins.Remove(parent);
-                            }
-                        }
+
                     }
                 }
 
             }
 
             //Render if renderer
-            if (node.IsAssignable<IDX11RendererProvider>())
+            if (node.Interfaces.IsRendererHost)
             {
                 try
                 {
-                    IDX11RendererProvider provider = node.Instance<IDX11RendererProvider>();
-                    provider.Render(this.context);
+                    if (node.Interfaces.IsRendererHost)
+                    {
+                        node.Interfaces.RendererHost.Render(this.context);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -264,35 +262,16 @@ namespace VVVV.DX11.Lib.RenderGraph
         }
         #endregion
 
-        #region Find Renderers
-        private List<DX11Node> FindRenderers()
-        {
-            List<DX11Node> renderers = new List<DX11Node>();
-
-            foreach (DX11Node n in this.graph.Nodes)
-            {
-                if (n.IsAssignable<IDX11RendererProvider>())
-                {
-                    renderers.Add(n);
-                }
-            }
-            return renderers;
-        }
-        #endregion
-
         #region Dispose
         public void Dispose()
         {
             foreach (DX11Node node in this.graph.Nodes)
             {
-                foreach (DX11OutputPin outpin in node.OutputPins)
+                if (node.Interfaces.IsResourceHost)
                 {
-                    //Call destroy
-                    IDX11ResourceProvider provider = outpin.ParentNode.Instance<IDX11ResourceProvider>();
-
                     try
                     {
-                        provider.Destroy(outpin.PluginIO, this.context, true);
+                        node.Interfaces.ResourceHost.Destroy(this.context, true);
                     }
                     catch (Exception ex)
                     {

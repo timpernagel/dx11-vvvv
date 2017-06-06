@@ -8,18 +8,17 @@ using System.Windows.Forms;
 
 using FeralTic.DX11;
 using FeralTic.DX11.Resources;
-using SlimDX;
 using SlimDX.DXGI;
-using VVVV.DX11.Lib.Devices;
 using VVVV.PluginInterfaces.V1;
 using VVVV.PluginInterfaces.V2;
 using VVVV.Utils.VColor;
+using SlimDX.Direct3D11;
 
 namespace VVVV.DX11.Nodes.Renderers
 {
      [PluginInfo(Name = "Preview", Category = "DX11.Texture", Author = "vux", AutoEvaluate = true,
         InitialWindowHeight = 300, InitialWindowWidth = 400, InitialBoxWidth = 400, InitialBoxHeight = 300, InitialComponentMode = TComponentMode.InAWindow)]
-    public class DX11PreviewNode :IDX11RendererProvider, 
+    public class DX11PreviewNode : IDX11RendererHost, 
          IDisposable,
          IPluginEvaluate, 
          IDX11RenderWindow, 
@@ -42,6 +41,9 @@ namespace VVVV.DX11.Nodes.Renderers
          [Input("Background Color", DefaultColor=new double[] { 0.5, 0.5, 0.5, 1 }, IsSingle = true)]
          protected ISpread<RGBAColor> FInBgColor;
 
+         [Input("Sampler State")]
+         protected Pin<SamplerDescription> FInSamplerState;
+
          [Input("Enabled",DefaultValue=1)]
          protected ISpread<bool> FEnabled;
 
@@ -51,6 +53,7 @@ namespace VVVV.DX11.Nodes.Renderers
          DX11Resource<DX11SwapChain> swapchain = new DX11Resource<DX11SwapChain>();
 
          private bool resized;
+         private int spreadMax;
 
          public RGBAColor BackgroundColor
          {
@@ -71,19 +74,6 @@ namespace VVVV.DX11.Nodes.Renderers
              this.ctrl.Dock = DockStyle.Fill;
              this.ctrl.Resize += new EventHandler(ctrl_Resize);
              this.ctrl.BackColor = System.Drawing.Color.Black;
-
-             this.ctrl.PreviewKeyDown += new PreviewKeyDownEventHandler(ctrl_PreviewKeyDown);
-             this.ctrl.KeyDown += new KeyEventHandler(ctrl_KeyDown);
-         }
-
-         void ctrl_KeyDown(object sender, KeyEventArgs e)
-         {
-
-         }
-
-         void ctrl_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
-         {
- 
          }
 
          public bool IsEnabled
@@ -104,7 +94,7 @@ namespace VVVV.DX11.Nodes.Renderers
 
              if (!this.swapchain.Contains(context))
              {
-                 this.swapchain[context] = new DX11SwapChain(context, this.Handle, SlimDX.DXGI.Format.R8G8B8A8_UNorm, new SampleDescription(1, 0));
+                 this.swapchain[context] = new DX11SwapChain(context, this.Handle, SlimDX.DXGI.Format.R8G8B8A8_UNorm, new SampleDescription(1, 0),60,1,false);
              }
 
              if (this.resized)
@@ -117,10 +107,10 @@ namespace VVVV.DX11.Nodes.Renderers
                  context.CurrentDeviceContext.ClearRenderTargetView(this.swapchain[context].RTV,new SlimDX.Color4(0,0,0,0));
              }
 
-             if (this.FIn.PluginIO.IsConnected && this.FEnabled[0])
+             if (this.FIn.IsConnected && this.spreadMax > 0 && this.FEnabled[0])
              {
                  int id = this.FIndex[0];
-                 if (this.FIn[id].Contains(context))
+                 if (this.FIn[id].Contains(context) && this.FIn[id][context] != null)
                  {
                      context.RenderTargetStack.Push(this.swapchain[context]);
                      var rs = new DX11RenderState();
@@ -134,6 +124,20 @@ namespace VVVV.DX11.Nodes.Renderers
                      context.CleanShaderStages();
                                                    
                      context.Primitives.FullTriVS.GetVariableBySemantic("TEXTURE").AsResource().SetResource(this.FIn[id][context].SRV);
+
+                     EffectSamplerVariable samplervariable = context.Primitives.FullTriVS.GetVariableByName("linSamp").AsSampler();
+                     SamplerState state = null;
+                     if (this.FInSamplerState.IsConnected)
+                     {
+
+                         state = SamplerState.FromDescription(context.Device, this.FInSamplerState[0]);
+                         samplervariable.SetSamplerState(0, state);
+                     }
+                     else
+                     {
+                         samplervariable.UndoSetSamplerState(0);
+                     }
+
                      context.Primitives.FullScreenTriangle.Bind(null);
                      context.Primitives.ApplyFullTri();
                      context.Primitives.FullScreenTriangle.Draw();
@@ -141,11 +145,17 @@ namespace VVVV.DX11.Nodes.Renderers
                      context.RenderStateStack.Pop();
                      context.RenderTargetStack.Pop();
                      context.CleanUpPS();
+                     samplervariable.UndoSetSamplerState(0); //undo as can be used in other places
+
+                     if (state != null)
+                     {
+                         state.Dispose();
+                     }
                  }
              }  
          }
 
-         public void Update(IPluginIO pin, DX11RenderContext context)
+         public void Update(DX11RenderContext context)
          {
              if (this.lasthandle != this.Handle)
              {
@@ -158,7 +168,8 @@ namespace VVVV.DX11.Nodes.Renderers
 
              if (!this.swapchain.Contains(context))
              {
-                 this.swapchain[context] = new DX11SwapChain(context, this.Handle, SlimDX.DXGI.Format.R8G8B8A8_UNorm, new SampleDescription(1,0));
+                 this.swapchain[context] = new DX11SwapChain(context, this.Handle, 
+                     SlimDX.DXGI.Format.R8G8B8A8_UNorm, new SampleDescription(1,0), 60,1, false);
              }
 
              if (this.resized)
@@ -167,7 +178,7 @@ namespace VVVV.DX11.Nodes.Renderers
              }
          }
 
-         public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+         public void Destroy(DX11RenderContext context, bool force)
          {
              this.swapchain.Dispose(context);
          }
@@ -201,21 +212,28 @@ namespace VVVV.DX11.Nodes.Renderers
                  return CustomQueryInterfaceResult.NotHandled;
              }
          }
-         #endregion
+        #endregion
 
-         #region Window Stuff
-         public DX11RenderContext RenderContext
-         {
-             get;
-             set;
-         }
+        #region Window Stuff
+
+        private DX11RenderContext attachedContext;
+
+        public void AttachContext(DX11RenderContext renderContext)
+        {
+            this.attachedContext = renderContext;
+        }
+
+        public DX11RenderContext RenderContext
+        {
+            get { return this.attachedContext; }
+        }
 
          public IntPtr WindowHandle
          {
              get { return ctrl.Handle; }
          }
 
-         public bool IsVisible
+         public bool Enabled
          {
              get { return ctrl.Visible; }
          }
@@ -244,6 +262,9 @@ namespace VVVV.DX11.Nodes.Renderers
          public void Evaluate(int SpreadMax)
          {
              this.FOutCtrl[0] = this.ctrl;
+            this.spreadMax = SpreadMax;
          }
+
+ 
     }
 }

@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using SlimDX.Direct3D9;
 using BulletSharp;
 using System.IO;
 using System.Runtime.InteropServices;
-using VVVV.Internals.Bullet.EX9;
+using VVVV.Bullet.Core;
 
 namespace VVVV.DataTypes.Bullet
 {
-	public class HeightFieldShapeDefinition : AbstractRigidShapeDefinition
+	public class HeightFieldShapeDefinition : RigidShapeDefinitionBase
 	{
 		private int w, l;
 		private float[] h;
@@ -26,12 +25,6 @@ namespace VVVV.DataTypes.Bullet
 			this.maxh = maxh;
 			this.ms = null;
 		}
-
-		public override int ShapeCount
-		{
-			get { return 1; }
-		}
-
 
 		protected override CollisionShape CreateShape()
 		{
@@ -52,11 +45,6 @@ namespace VVVV.DataTypes.Bullet
 			//hs.LocalScaling = new Vector3(this.sx, 1.0f, this.sz);
 			return hs;
 			
-		}
-
-		protected override BulletMesh CreateMesh(Device device)
-		{
-            return null;
 		}
 	}
 }

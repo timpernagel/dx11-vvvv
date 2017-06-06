@@ -8,6 +8,7 @@ using VVVV.Utils.VMath;
 using VVVV.Internals.Bullet;
 using System.ComponentModel.Composition;
 using VVVV.Core.Logging;
+using VVVV.Bullet.Core;
 
 namespace VVVV.Nodes.Bullet
 {
@@ -26,14 +27,6 @@ namespace VVVV.Nodes.Bullet
 
 		[Output("Id")]
         protected ISpread<int> FId;
-
-		[Import()]
-        protected ILogger FLogger;
-
-
-		//[Import()]
-		//VVVV. FLog;
-
 
 		public void Evaluate(int SpreadMax)
 		{
@@ -64,9 +57,7 @@ namespace VVVV.Nodes.Bullet
 				this.FId.SliceCount = 0;
 				this.FPosition.SliceCount = 0;
                 this.FRadius.SliceCount = 0;
-
 			}
-
 		}
 	}
 }

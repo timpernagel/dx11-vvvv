@@ -17,7 +17,6 @@ namespace VVVV.DX11.Internals.Effects.Pins
     {
         protected abstract ShaderResourceView GetSRV(DX11RenderContext context, int slice);
 
-
         protected virtual ShaderResourceView GetDefaultSRV(DX11RenderContext context) { return null; }
 
 
@@ -31,16 +30,22 @@ namespace VVVV.DX11.Internals.Effects.Pins
             return false;
         }
 
-        public override void SetVariable(DX11ShaderInstance shaderinstance, int slice)
+        private ShaderResourceView GetView(DX11ShaderInstance shaderinstance, int slice)
         {
-            if (this.pin.PluginIO.IsConnected)
+            if (this.pin.IsConnected)
             {
-                shaderinstance.SetByName(this.Name, this.GetSRV(shaderinstance.RenderContext, slice));
+                return this.GetSRV(shaderinstance.RenderContext, slice);
             }
             else
             {
-                shaderinstance.SetByName(this.Name, this.GetDefaultSRV(shaderinstance.RenderContext));
+                return this.GetDefaultSRV(shaderinstance.RenderContext);
             }
+        }
+
+        public override Action<int> CreateAction(DX11ShaderInstance instance)
+        {
+            var sv = instance.Effect.GetVariableByName(this.Name).AsResource();
+            return (i) => { sv.SetResource(this.GetView(instance, i)); };
         }
     }
 }

@@ -3,41 +3,23 @@ using System.Collections.Generic;
 using System.Text;
 
 using BulletSharp;
-
-using SlimDX.Direct3D9;
-
-using VVVV.Internals.Bullet.EX9;
+using VVVV.Bullet.Core;
 
 namespace VVVV.DataTypes.Bullet
 {
-	public class SphereShapeDefinition : AbstractRigidShapeDefinition
+	public class SphereShapeDefinition : DynamicShapeDefinitionBase
 	{
 		private float radius;
-		private int resx = 10;
-		private int resy = 10;
 
-		public SphereShapeDefinition(float radius,int resx,int resy)
+		public SphereShapeDefinition(float radius)
 		{
 			this.radius = radius;
-			this.resx = resx;
-			this.resy = resy;
-		}
-
-		public override int ShapeCount
-		{
-			get { return 1; }
 		}
 
 		protected override CollisionShape CreateShape()
 		{
 			CollisionShape shape = new SphereShape(this.radius);
-			//shape.CalculateLocalInertia(this.Mass);
 			return shape;
-		}
-
-		protected override BulletMesh CreateMesh(Device device)
-		{
-            return null;// new BulletMesh(Mesh.CreateSphere(device, this.radius, resx, resy));	
 		}
 	}
 }

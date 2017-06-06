@@ -19,7 +19,7 @@ using VVVV.DX11.Lib.Rendering;
 namespace VVVV.DX11.Nodes
 {
     [PluginInfo(Name = "RenderSemantic", Category = "DX11.Layer", Version = "Texture2D")]
-    public class DX11Texture2dSemanticNode : IPluginEvaluate, IDX11ResourceProvider
+    public class DX11Texture2dSemanticNode : IPluginEvaluate, IDX11ResourceHost
     {
         [Input("Input")]
         protected Pin<DX11Resource<DX11Texture2D>> FInput;
@@ -43,7 +43,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.FInput.PluginIO.IsConnected)
             {
@@ -63,7 +63,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             for (int i = 0; i < this.FOutput.SliceCount; i++)
             {
@@ -72,9 +72,62 @@ namespace VVVV.DX11.Nodes
         }
     }
 
+    [PluginInfo(Name = "RenderSemantic", Category = "DX11.Layer", Version = "Texture2DArray")]
+    public class DX11Texture2dArraySemanticNode : IPluginEvaluate, IDX11ResourceHost
+    {
+        [Input("Input")]
+        protected Pin<DX11Resource<DX11Texture2D>> FInput;
+
+        [Input("Semantic", DefaultString = "SEMANTIC")]
+        protected ISpread<string> FSemantic;
+
+        [Input("Mandatory", DefaultValue = 0)]
+        protected ISpread<bool> FMandatory;
+
+        [Output("Output")]
+        protected ISpread<DX11Resource<Texture2dArrayRenderSemantic>> FOutput;
+
+        public void Evaluate(int SpreadMax)
+        {
+            this.FOutput.SliceCount = SpreadMax;
+
+            for (int i = 0; i < SpreadMax; i++)
+            {
+                if (this.FOutput[i] == null) { this.FOutput[i] = new DX11Resource<Texture2dArrayRenderSemantic>(); }
+            }
+        }
+
+        public void Update(DX11RenderContext context)
+        {
+            if (this.FInput.PluginIO.IsConnected)
+            {
+                for (int i = 0; i < this.FOutput.SliceCount; i++)
+                {
+                    this.FOutput[i][context] = new Texture2dArrayRenderSemantic(this.FSemantic[i], this.FMandatory[i]);
+
+                    if (this.FInput[i].Contains(context))
+                    {
+                        this.FOutput[i][context].Data = this.FInput[i][context];
+                    }
+                    else
+                    {
+                        this.FOutput[i][context].Data = null;
+                    }
+                }
+            }
+        }
+
+        public void Destroy(DX11RenderContext context, bool force)
+        {
+            for (int i = 0; i < this.FOutput.SliceCount; i++)
+            {
+                this.FOutput[i].Dispose(context);
+            }
+        }
+    }
 
     [PluginInfo(Name = "RenderSemantic", Category = "DX11.Layer", Version = "TextureCube")]
-    public class DX11TextureCubeSemanticNode : IPluginEvaluate, IDX11ResourceProvider
+    public class DX11TextureCubeSemanticNode : IPluginEvaluate, IDX11ResourceHost
     {
         [Input("Input")]
         protected Pin<DX11Resource<DX11Texture2D>> FInput;
@@ -98,7 +151,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.FInput.PluginIO.IsConnected)
             {
@@ -118,7 +171,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             for (int i = 0; i < this.FOutput.SliceCount; i++)
             {
@@ -128,7 +181,7 @@ namespace VVVV.DX11.Nodes
     }
 
     [PluginInfo(Name = "RenderSemantic", Category = "DX11", Version = "StructuredBuffer")]
-    public class DX11SBufferSemanticNode : IPluginEvaluate, IDX11ResourceProvider
+    public class DX11SBufferSemanticNode : IPluginEvaluate, IDX11ResourceHost
     {
         [Input("Input")]
         protected Pin<DX11Resource<IDX11ReadableStructureBuffer>> FInput;
@@ -152,7 +205,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.FInput.PluginIO.IsConnected)
             {
@@ -172,7 +225,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             for (int i = 0; i < this.FOutput.SliceCount; i++)
             {
@@ -181,21 +234,20 @@ namespace VVVV.DX11.Nodes
         }
     }
 
-
-    [PluginInfo(Name = "RenderSemantic", Category = "DX11", Version = "RWStructuredBuffer")]
-    public class DX11RWBufferSemanticNode : IPluginEvaluate, IDX11ResourceProvider
+    [PluginInfo(Name = "RenderSemantic", Category = "DX11", Version = "ByteAddressBuffer")]
+    public class DX11BABufferSemanticNode : IPluginEvaluate, IDX11ResourceHost
     {
         [Input("Input")]
-        protected Pin<DX11Resource<IDX11RWStructureBuffer>> FInput;
+        protected Pin<DX11Resource<IDX11ReadableResource>> FInput;
 
-        [Input("Semantic", DefaultString = "RWSEMANTIC")]
+        [Input("Semantic", DefaultString = "SEMANTIC")]
         protected ISpread<string> FSemantic;
 
         [Input("Mandatory", DefaultValue = 0)]
         protected ISpread<bool> FMandatory;
 
         [Output("Output")]
-        protected ISpread<DX11Resource<StructuredBufferRenderSemantic>> FOutput;
+        protected ISpread<DX11Resource<BufferRenderSemantic>> FOutput;
 
         public void Evaluate(int SpreadMax)
         {
@@ -203,17 +255,17 @@ namespace VVVV.DX11.Nodes
 
             for (int i = 0; i < SpreadMax; i++)
             {
-                if (this.FOutput[i] == null) { this.FOutput[i] = new DX11Resource<StructuredBufferRenderSemantic>(); }
+                if (this.FOutput[i] == null) { this.FOutput[i] = new DX11Resource<BufferRenderSemantic>(); }
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.FInput.PluginIO.IsConnected)
             {
                 for (int i = 0; i < this.FOutput.SliceCount; i++)
                 {
-                    this.FOutput[i][context] = new StructuredBufferRenderSemantic(this.FSemantic[i], this.FMandatory[i]);
+                    this.FOutput[i][context] = new BufferRenderSemantic(this.FSemantic[i], this.FMandatory[i]);
 
                     if (this.FInput[i].Contains(context))
                     {
@@ -227,7 +279,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             for (int i = 0; i < this.FOutput.SliceCount; i++)
             {
@@ -237,7 +289,7 @@ namespace VVVV.DX11.Nodes
     }
 
     [PluginInfo(Name = "RenderSemantic", Category = "DX11", Version = "Texture3D")]
-    public class DX11Texture3dSemanticNode : IPluginEvaluate, IDX11ResourceProvider
+    public class DX11Texture3dSemanticNode : IPluginEvaluate, IDX11ResourceHost
     {
         [Input("Input")]
         protected Pin<DX11Resource<DX11Texture3D>> FInput;
@@ -261,7 +313,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.FInput.PluginIO.IsConnected)
             {
@@ -281,7 +333,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             for (int i = 0; i < this.FOutput.SliceCount; i++)
             {

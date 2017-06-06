@@ -12,7 +12,7 @@ using FeralTic.DX11;
 namespace VVVV.DX11.Nodes
 {
     [PluginInfo(Name = "RawIndexBuffer", Category = "DX11", Version = "Geometry")]
-    public class IndexRawBufferNode : IPluginEvaluate, IDX11ResourceProvider
+    public class IndexRawBufferNode : IPluginEvaluate, IDX11ResourceHost
     {
         [Input("Geometry In", IsSingle = true)]
         protected Pin<DX11Resource<IDX11Geometry>> FIn;
@@ -25,7 +25,7 @@ namespace VVVV.DX11.Nodes
 
         public void Evaluate(int SpreadMax)
         {
-            if (this.FIn.PluginIO.IsConnected)
+            if (this.FIn.IsConnected)
             {
                 this.FOutBuffer.SliceCount = SpreadMax;
                 for (int i = 0; i < this.FIn.SliceCount; i++)
@@ -39,12 +39,12 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
 
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             for (int i = 0; i < this.FIn.SliceCount; i++)
             {

@@ -13,26 +13,26 @@ using BulletSharp.SoftBody;
 
 using VVVV.Internals.Bullet;
 using FeralTic.DX11.Utils;
-
+using VVVV.Bullet.Core;
 
 namespace VVVV.DX11.Nodes.Bullet
 {
-	[PluginInfo(Name = "SoftBody", Category = "Bullet",Version="EX9.Geometry",
+	[PluginInfo(Name = "SoftBody", Category = "Bullet",Version="DX11.Geometry",
 		Help = "Gets a soft body data as mesh", Author = "vux")]
-	public class BulletGetSoftBodyMesh : IPluginEvaluate,IDX11ResourceProvider
+	public class BulletGetSoftBodyMesh : IPluginEvaluate,IDX11ResourceHost, System.IDisposable
 	{
 		[Input("Bodies")]
         protected ISpread<SoftBody> FBodies;
-
-		[Output("Is Valid")]
-        protected ISpread<bool> FValid;
 
 		IPluginHost FHost;
 
         [Output("Output", Order = 5)]
         protected ISpread<DX11Resource<DX11IndexedGeometry>> FOutput;
 
-		[ImportingConstructor()]
+        [Output("Is Valid", Order = 100)]
+        protected ISpread<bool> FValid;
+
+        [ImportingConstructor()]
 		public BulletGetSoftBodyMesh(IPluginHost host)
 		{
             this.FHost = host;
@@ -59,7 +59,7 @@ namespace VVVV.DX11.Nodes.Bullet
             this.FOutput.Stream.IsChanged = true;
 		}
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             for (int i = 0; i < this.FOutput.SliceCount; i++)
             {
@@ -155,7 +155,7 @@ namespace VVVV.DX11.Nodes.Bullet
                             geom.VertexBuffer = BufferHelper.CreateVertexBuffer(context, verts, false, true);
 
                             geom.HasBoundingBox = false;
-
+                            geom.Topology = SlimDX.Direct3D11.PrimitiveTopology.TriangleList;
                             DX11IndexBuffer ibo = new DX11IndexBuffer(context, indices,false,true);
                             geom.IndexBuffer = ibo;
                             this.FOutput[i][context] = geom;
@@ -166,11 +166,26 @@ namespace VVVV.DX11.Nodes.Bullet
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             for (int i = 0; i < this.FOutput.SliceCount; i++)
             {
-                this.FOutput[i].Dispose(context);
+                if (this.FOutput[i] != null)
+                {
+                    this.FOutput[i].Dispose(context);
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            for (int i = 0; i < this.FOutput.SliceCount; i++)
+            {
+                if (this.FOutput[i] != null)
+                {
+                    this.FOutput[i].Dispose();
+                    this.FOutput[i] = null;
+                }
             }
         }
     }

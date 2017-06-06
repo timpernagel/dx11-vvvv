@@ -13,6 +13,12 @@ namespace VVVV.DX11.Lib.Effects.Registries
         public RenderVariableRegistry()
         {
             //View projection semantics
+            this.RegisterType("float4x4", "LAYER", false, (var, host, factory) => new MatrixLayerWorldRenderVariable(var));
+            this.RegisterType("float4x4", "LAYERINVERSE", false, (var, host, factory) => new MatrixLayerInvWorldRenderVariable(var));
+
+            this.RegisterType("float4x4", "LAYERVIEW", false, (var, host, factory) => new MatrixLayerWorldViewRenderVariable(var));
+            this.RegisterType("float4x4", "LAYERVIEWPROJECTION", false, (var, host, factory) => new MatrixLayerWorldViewProjRenderVariable(var));
+
             this.RegisterType("float4x4", "PROJECTION", false, (var, host, factory) => new MatrixProjRenderVariable(var));
             this.RegisterType("float4x4", "VIEW", false, (var, host, factory) => new MatrixViewRenderVariable(var));
             this.RegisterType("float4x4", "VIEWPROJECTION", false, (var, host, factory) => new MatrixViewProjRenderVariable(var));
@@ -31,6 +37,9 @@ namespace VVVV.DX11.Lib.Effects.Registries
 
             this.RegisterType("float3", "CAMERAPOSITION", false, (var, host, factory) => new CameraPositionRenderVariable(var));
 
+
+            this.RegisterType("RWTexture1D", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
+            this.RegisterType("RWTexture1DArray", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("RWTexture2D", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("RWTexture3D", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("RWStructuredBuffer", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
@@ -38,6 +47,9 @@ namespace VVVV.DX11.Lib.Effects.Registries
             this.RegisterType("Texture2D", "READBUFFER", false, (var, host, factory) => new ReadBufferRenderVariable(var));
             this.RegisterType("Texture3D", "READBUFFER", false, (var, host, factory) => new ReadBufferRenderVariable(var));
             this.RegisterType("StructuredBuffer", "READBUFFER", false, (var, host, factory) => new ReadBufferRenderVariable(var));
+            
+            this.RegisterType("Texture2D", "READONLYDEPTHTEXTURE", false, (var, host, factory) => new ReadOnlyDepthRenderVariable(var));
+            this.RegisterType("Texture2DMS", "READONLYDEPTHTEXTURE", false, (var, host, factory) => new ReadOnlyDepthRenderVariable(var));
 
             this.RegisterType("float2", "TARGETSIZE", false, (var, host, factory) => new Float2TargetSizeRenderVariable(var));
             this.RegisterType("float2", "INVTARGETSIZE", false, (var, host, factory) => new Float2InvTargetSizeRenderVariable(var));
@@ -59,7 +71,7 @@ namespace VVVV.DX11.Lib.Effects.Registries
             this.RegisterType("RWStructuredBuffer", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("AppendStructuredBuffer", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("ConsumeStructuredBuffer", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
-            
+            this.RegisterType("RWByteAddressBuffer", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
         }
     }
 }

@@ -22,10 +22,10 @@ namespace VVVV.DX11.Nodes
         [Config("Layout")]
         protected IDiffSpread<string> FLayout;
 
-        [Input("Input")]
+        [Input("Input", AutoValidate =false)]
         protected Pin<DX11Resource<IDX11ReadableStructureBuffer>> FInput;
 
-        [Input("Element Count", DefaultValue=1)]
+        [Input("Element Count", DefaultValue=1, AutoValidate =false)]
         protected ISpread<int> FInElementCount;
 
         [Input("Enabled", DefaultValue = 1, IsSingle=true)]
@@ -54,8 +54,11 @@ namespace VVVV.DX11.Nodes
         {
 
 
-            if (this.FInput.PluginIO.IsConnected && this.FInEnabled[0])
+            if (this.FInput.IsConnected && this.FInEnabled[0])
             {
+                this.FInElementCount.Sync();
+                this.FInput.Sync();
+
                 if (this.RenderRequest != null) { this.RenderRequest(this, this.FHost); }
 
                 IDX11ReadableStructureBuffer b= this.FInput[0][this.AssignedContext];

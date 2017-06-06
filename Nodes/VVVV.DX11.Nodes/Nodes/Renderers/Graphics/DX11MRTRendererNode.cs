@@ -6,18 +6,13 @@ using VVVV.PluginInterfaces.V2;
 using VVVV.Utils.VMath;
 using System.ComponentModel.Composition;
 using VVVV.PluginInterfaces.V1;
-using VVVV.Hosting.Pins.Config;
 using SlimDX.Direct3D11;
-using VVVV.Hosting.Pins;
 using SlimDX.DXGI;
-
-using Device = SlimDX.Direct3D11.Device;
-using VVVV.DX11.Internals.Helpers;
 using VVVV.DX11.Lib.Rendering;
-using VVVV.DX11.Lib.Devices;
-
 using FeralTic.DX11;
 using FeralTic.DX11.Resources;
+using VVVV.DX11.Lib;
+using VVVV.DX11.Internals.Helpers;
 
 namespace VVVV.DX11
 {
@@ -118,7 +113,7 @@ namespace VVVV.DX11
         {
             if (this.resetbuffers || !this.FOutBuffers[0].Contains(context))
             {
-                this.DisposeBuffers(context);
+                this.FOutBuffers.SafeDisposeAll(context);
 
                 for (int i = 0; i < this.FInTargetCount[0]; i++)
                 {
@@ -138,9 +133,20 @@ namespace VVVV.DX11
         #region Destroy
         protected override void OnDestroy(DX11RenderContext context, bool force)
         {
-            this.DisposeBuffers(context);        
+            this.FOutBuffers.SafeDisposeAll(context); 
         }
         #endregion
+
+        protected override void DoClear(DX11RenderContext context)
+        {
+            for (int i = 0; i < this.FOutBuffers.SliceCount; i++)
+            {
+                if (this.FInClear[i])
+                {
+                    context.CurrentDeviceContext.ClearRenderTargetView(this.FOutBuffers[i][context].RTV, this.FInBgColor[i]);
+                }
+            }
+        }
 
         #region Before Render
         protected override void BeforeRender(DX11GraphicsRenderer renderer, DX11RenderContext context)
@@ -175,20 +181,7 @@ namespace VVVV.DX11
         #region On Dispose
         protected override void OnDispose()
         {
-            for (int i = 0; i < this.FOutBuffers.SliceCount; i++)
-            {
-                this.FOutBuffers[i].Dispose();
-            }
-        }
-        #endregion
-
-        #region Dispose Buffers
-        private void DisposeBuffers(DX11RenderContext context)
-        {
-            for (int i = 0; i < this.FOutBuffers.SliceCount; i++)
-            {
-                this.FOutBuffers[i].Dispose(context);
-            }
+            this.FOutBuffers.SafeDisposeAll();
         }
         #endregion
     }

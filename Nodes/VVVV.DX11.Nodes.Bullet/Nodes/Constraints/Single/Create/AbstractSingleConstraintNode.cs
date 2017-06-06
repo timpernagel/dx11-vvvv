@@ -6,6 +6,7 @@ using VVVV.PluginInterfaces.V2;
 using BulletSharp;
 using VVVV.DataTypes.Bullet;
 using VVVV.Internals.Bullet;
+using VVVV.Bullet.Core;
 
 namespace VVVV.Nodes.Bullet
 {
@@ -13,16 +14,13 @@ namespace VVVV.Nodes.Bullet
 	public abstract class AbstractSingleConstraintNode<T> : IPluginEvaluate where T: TypedConstraint
 	{
 		[Input("World", IsSingle = true,Order=1)]
-		protected Pin<BulletRigidSoftWorld> FWorld;
+		protected Pin<BulletSoftWorldContainer> FWorld;
 
 		[Input("Bodies",Order=2)]
         protected Pin<RigidBody> FBodies;
 
 		[Input("Custom", Order = 100)]
         protected ISpread<string> FCustom;
-
-		[Input("Custom Object", Order = 101)]
-        protected Pin<ICloneable> FCustomObject;
 
 		[Input("Do Create",IsBang=true,Order=1000)]
         protected ISpread<bool> FDoCreate;
@@ -39,15 +37,9 @@ namespace VVVV.Nodes.Bullet
 					{
 						T cst = this.CreateConstraint(this.FBodies[i], i);
 
-						ConstraintCustomData cust = new ConstraintCustomData();
-						cust.Id = this.FWorld[0].GetNewConstraintId();
+						ConstraintCustomData cust = new ConstraintCustomData(this.FWorld[0].GetNewConstraintId());
 						cust.Custom = this.FCustom[i];
 						cust.IsSingle = true;
-
-						if (FCustomObject.PluginIO.IsConnected)
-						{
-							cust.CustomObject = FCustomObject[i];
-						}
 
 						cst.UserObject = cust;
 						this.FWorld[0].Register(cst);

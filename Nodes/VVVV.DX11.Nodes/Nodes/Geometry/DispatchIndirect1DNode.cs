@@ -17,7 +17,7 @@ using FeralTic.Resources.Geometry;
 namespace VVVV.DX11.Nodes.Geometry
 {
     [PluginInfo(Name = "DispatchIndirect", Category = "DX11.Drawer", Version = "1D", Author = "vux")]
-    public class DispatchIndirectDrawerNode : IPluginEvaluate, IDX11ResourceProvider, IDisposable
+    public class DispatchIndirectDrawerNode : IPluginEvaluate, IDX11ResourceHost, IDisposable
     {
         [Input("Warp Size", DefaultValue = 1, IsSingle=true)]
         protected IDiffSpread<int> FInWarpX;
@@ -31,8 +31,6 @@ namespace VVVV.DX11.Nodes.Geometry
         [Output("Counter Buffer")]
         protected ISpread<DX11Resource<IDX11StructuredBuffer>> FOutCounter;
 
-        bool invalidate = false;
-
         private DX11ShaderInstance generateShader;
         private DispatchIndirectBuffer dispatchBuffer;
         private DX11RawBuffer countBuffer;
@@ -41,9 +39,7 @@ namespace VVVV.DX11.Nodes.Geometry
 
         public void Evaluate(int SpreadMax)
         {
-            invalidate = false;
-
-            if (FInArgBuffer.PluginIO.IsConnected)
+            if (FInArgBuffer.IsConnected)
             {
                 if (this.FOutGeom.SliceCount == 0)
                 {
@@ -64,7 +60,7 @@ namespace VVVV.DX11.Nodes.Geometry
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.FOutGeom.SliceCount == 0) { return; }
 
@@ -103,7 +99,7 @@ namespace VVVV.DX11.Nodes.Geometry
             this.dispatchBuffer.UpdateBuffer();
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext OnDevice, bool force)
+        public void Destroy(DX11RenderContext OnDevice, bool force)
         {
         }
 

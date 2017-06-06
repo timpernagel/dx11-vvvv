@@ -8,6 +8,7 @@ using VVVV.PluginInterfaces.V1;
 using VVVV.PluginInterfaces.V2;
 using VVVV.DX11;
 using VVVV.DX11.Lib.RenderGraph.Pins;
+using VVVV.Hosting.Interfaces;
 
 namespace VVVV.Nodes
 {
@@ -15,14 +16,17 @@ namespace VVVV.Nodes
 
     public class ResourceListener : IPinListener
     {
-        public IPin pin;
+        public IPin Pin { get; private set; }
 
-        public IPin link;
+        public IPin ParentPin { get; private set; }
 
-        public ResourceListener(IPluginIO pin)
+        public object RawInstance { get; private set; }
+
+        public ResourceListener(IPluginIO pin, object rawinstance)
         {
-            this.pin = (IPin)pin;
-            this.pin.AddListener(this);
+            this.RawInstance = rawinstance;
+            this.Pin = (IPin)pin;
+            this.Pin.AddListener(this);
         }
 
         public void ChangedCB()
@@ -32,12 +36,12 @@ namespace VVVV.Nodes
 
         public void ConnectedCB(IPin otherPin)
         {
-            this.link = otherPin;
+            this.ParentPin = otherPin;
         }
 
         public void DisconnectedCB(IPin otherPin)
         {
-            this.link = null;
+            this.ParentPin = null;
         }
 
         public void StatusChangedCB()
@@ -72,9 +76,9 @@ namespace VVVV.Nodes
                 var stream = Activator.CreateInstance(typeof(DX11ResourceInputStream<,>).MakeGenericType(fulltype, restype), container.RawIOObject) as IInStream;
                 IPluginIO io = container.GetPluginIO();
 
-                ResourceListener rl = new ResourceListener(io);
+                ResourceListener rl = new ResourceListener(io, stream);
 
-                this.pinconnections.Add(rl.pin, rl);
+                this.pinconnections.Add(rl.Pin, rl);
                 return IOContainer.Create(context, stream, container);
             }
 
@@ -86,7 +90,11 @@ namespace VVVV.Nodes
 
                 Type restype = t.GetGenericArguments()[0];
                 Type fulltype = typeof(DX11Resource<>).MakeGenericType(restype);
-                var stream = Activator.CreateInstance(typeof(DX11ResourceOutputStream<,>).MakeGenericType(fulltype,restype), container.RawIOObject) as IOutStream;
+
+                //Check if resource type should only be a single output
+                bool shouldBeSingle = restype.GetCustomAttributes(typeof(SingleOutputAttribute), true).Length > 0;
+
+                var stream = Activator.CreateInstance(typeof(DX11ResourceOutputStream<,>).MakeGenericType(fulltype, restype), container.RawIOObject, shouldBeSingle) as IOutStream;
                 return IOContainer.Create(context, stream, container);
             }
 

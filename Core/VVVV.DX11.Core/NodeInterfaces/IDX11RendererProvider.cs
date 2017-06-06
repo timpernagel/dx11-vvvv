@@ -11,7 +11,7 @@ namespace VVVV.DX11
     /// Renderer provider also needs to render as soon as update
     /// is fully satisfied.
     /// </summary>
-    public interface IDX11RendererProvider : IDX11ResourceProvider
+    public interface IDX11RendererHost : IDX11ResourceHost
     {
         /// <summary>
         /// Indicates if node is enabled at all

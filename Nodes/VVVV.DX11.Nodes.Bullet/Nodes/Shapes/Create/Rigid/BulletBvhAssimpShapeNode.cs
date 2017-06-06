@@ -23,13 +23,14 @@ namespace VVVV.Bullet.Nodes.Shapes.Create.Rigid
             {
                 int spmax = ArrayMax.Max(FInMesh.SliceCount, this.BasePinsSpreadMax);
 
+                this.FShapes.SliceCount = spmax;
+
                 for (int i = 0; i < spmax; i++)
                 {
-                    BvhShapeDefinition chull = new BvhShapeDefinition(this.FInMesh[i]);
-                    chull.Mass = this.FMass[i];
-                    this.SetBaseParams(chull, i);
+                    BvhShapeDefinition shadeDef = new BvhShapeDefinition(this.FInMesh[i]);
+                    this.SetBaseParams(shadeDef, i);
 
-                    this.FShapes[i] = chull;
+                    this.FShapes[i] = shadeDef;
                 }
             }
         }

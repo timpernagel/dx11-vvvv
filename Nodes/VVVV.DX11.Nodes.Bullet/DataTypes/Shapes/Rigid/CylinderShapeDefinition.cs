@@ -1,49 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-
 using BulletSharp;
-
-using SlimDX.Direct3D9;
-using VVVV.Internals.Bullet.EX9;
+using FeralTic;
+using VVVV.Bullet.Core;
 
 namespace VVVV.DataTypes.Bullet
 {
-	public class CylinderShapeDefinition : AbstractRigidShapeDefinition
-	{
-		private float hw,hh,hd;
-		private int resx = 10;
-		private int resy = 10;
+	public class CylinderShapeDefinition : DynamicShapeDefinitionBase
+    {
+		private float radius;
+        private float halfLength;
+        private Axis axis;
 
-		public CylinderShapeDefinition(float hwidth, float hheight, float hdepth,int resx,int resy)
+		public CylinderShapeDefinition(float radius, float length, Axis axis)
 		{
-			this.hw = hwidth;
-			this.hh = hheight;
-			this.hd = hdepth;
-			this.resx = resx;
-			this.resy = resy;
+            this.radius = radius;
+            this.halfLength = length * 0.5f;
+            this.axis = axis;
 		}
-
-		public override int ShapeCount
-		{
-			get { return 1; }
-		}
-
 
 		protected override CollisionShape CreateShape()
 		{
-			//Cylinder are around Z axis in vvvv
-			//If we need Y/X axis, we can rotate, so i use Z
-			CollisionShape shape = new CylinderShapeZ(this.hw,this.hh,this.hd);
-			//BvhTriangleMeshShape bvh ;//= new BvhTriangleMeshShape(new StridingMeshInterface(),
-			//bvh.
-			return shape;
-		}
-
-		protected override BulletMesh CreateMesh(Device device)
-		{
-
-            return null;// new BulletMesh(Mesh.CreateCylinder(device, this.hh, this.hw, this.hd * 2.0f, resx, resy));
+            if (axis == Axis.X)
+            {
+                return new CylinderShapeX(this.radius, this.halfLength, this.radius);
+            }
+            else if (axis == Axis.Y)
+            {
+                return new CylinderShape(this.radius, this.halfLength, this.radius);
+            }
+            else
+            {
+                return new CylinderShapeZ(this.radius, this.halfLength, this.radius);
+            }
 		}
 	}
 }

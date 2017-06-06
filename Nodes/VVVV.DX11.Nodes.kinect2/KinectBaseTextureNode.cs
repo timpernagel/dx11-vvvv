@@ -18,19 +18,19 @@ using System.Runtime.InteropServices;
 
 namespace VVVV.DX11.Nodes.MSKinect
 {
-    public abstract class KinectBaseTextureNode : IPluginEvaluate, IPluginConnections, IDX11ResourceProvider, IDisposable
+    public abstract class KinectBaseTextureNode : IPluginEvaluate, IPluginConnections, IDX11ResourceHost, IDisposable
     {
          [DllImport("msvcrt.dll", SetLastError = false)]
         protected static extern IntPtr memcpy(IntPtr dest, IntPtr src, int count);
 
         [Input("Kinect Runtime", Order = -20)]
-        private Pin<KinectRuntime> FInRuntime;
+        public Pin<KinectRuntime> FInRuntime;
 
         [Output("Texture", IsSingle = true)]
-        Pin<DX11Resource<DX11DynamicTexture2D>> FTextureOutput;
+        public Pin<DX11Resource<DX11DynamicTexture2D>> FTextureOutput;
 
         [Output("Frame Index", IsSingle = true, Order = 10)]
-        private ISpread<long> FOutFrameIndex;
+        public ISpread<long> FOutFrameIndex;
 
         protected long frameindex = -1;
 
@@ -104,7 +104,7 @@ namespace VVVV.DX11.Nodes.MSKinect
             this.FTextureOutput[0].Dispose();
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (!this.FTextureOutput[0].Contains(context))
             {
@@ -129,13 +129,19 @@ namespace VVVV.DX11.Nodes.MSKinect
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             this.FTextureOutput[0].Dispose(context);
         }
 
         public void Dispose()
         {
+            if (this.runtime != null)
+            {
+                //Force a disconnect, to unregister event
+                this.OnRuntimeDisconnected();
+            }
+
             this.Disposing();
 
             if (this.FTextureOutput[0] != null)

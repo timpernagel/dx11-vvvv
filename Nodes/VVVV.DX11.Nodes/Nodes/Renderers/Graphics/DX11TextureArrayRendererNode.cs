@@ -12,27 +12,22 @@ using Device = SlimDX.Direct3D11.Device;
 using VVVV.PluginInterfaces.V1;
 using VVVV.PluginInterfaces.V2;
 
-using VVVV.Utils.VColor;
-using VVVV.Utils.VMath;
-
-using VVVV.Hosting.Pins;
-
 using FeralTic.DX11.Resources;
-using VVVV.DX11.Lib.Rendering;
 using FeralTic.DX11;
-using VVVV.DX11.Internals.Helpers;
 using FeralTic.DX11.Queries;
+using VVVV.DX11.Lib;
+using VVVV.DX11.Internals.Helpers;
 
 namespace VVVV.DX11.Nodes
 {
     [PluginInfo(Name = "Renderer", Category = "DX11",Version="TextureArray", Author = "vux")]
-    public class DX11TextureArrayRendererNode : IDX11RendererProvider, IPluginEvaluate, IDisposable, IDX11Queryable
+    public class DX11TextureArrayRendererNode : IDX11RendererHost, IPluginEvaluate, IDisposable, IDX11Queryable
     {
         protected IPluginHost FHost;
 
         IDiffSpread<EnumEntry> FInFormat;
 
-        [Input("Layer", Order = 1, IsSingle = true)]
+        [Input("Layer", Order = 1)]
         protected Pin<DX11Resource<DX11Layer>> FInLayer;
 
         [Input("Size", DefaultValues  = new double[] { 512, 512 },AsInt=true, Order = 3)]
@@ -142,7 +137,7 @@ namespace VVVV.DX11.Nodes
         
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             Device device = context.Device;
 
@@ -172,7 +167,7 @@ namespace VVVV.DX11.Nodes
             //Just in case
             if (!this.updateddevices.Contains(context))
             {
-                this.Update(null, context);
+                this.Update(context);
             }
 
             if (this.rendereddevices.Contains(context)) { return; }
@@ -197,7 +192,7 @@ namespace VVVV.DX11.Nodes
                     }
                 }
 
-                if (this.FInLayer.PluginIO.IsConnected)
+                if (this.FInLayer.IsConnected)
                 {
                     int slicecount = target.ElemCnt;
                     if (this.FInBindTarget[0])
@@ -217,14 +212,8 @@ namespace VVVV.DX11.Nodes
                     {
                         settings.ViewportIndex = i;
                         settings.ViewportCount = target.ElemCnt;
-                        settings.View = this.FInView[i];
+                        settings.ApplyTransforms(this.FInView[i], this.FInProjection[i], this.FInAspect[i], this.FInCrop[i]);
 
-                        Matrix proj = this.FInProjection[i];
-                        Matrix aspect = Matrix.Invert(this.FInAspect[i]);
-                        Matrix crop = Matrix.Invert(this.FInCrop[i]);
-
-                        settings.Projection = proj * aspect * crop;
-                        settings.ViewProjection = settings.View * settings.Projection;
                         settings.RenderWidth = target.Width;
                         settings.RenderHeight = target.Height;
                         settings.RenderDepth = target.ElemCnt;
@@ -244,18 +233,7 @@ namespace VVVV.DX11.Nodes
                             }
                         }
 
-                        for (int j = 0; j < this.FInLayer.SliceCount; j++)
-                        {
-                            try
-                            {
-                                this.FInLayer[j][context].Render(this.FInLayer.PluginIO, context, settings);
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine(ex.Message);
-                            }
-                        }
-
+                        this.FInLayer.RenderAll(context, settings);
 
                         if (this.FInBindTarget[0] == false)
                         {
@@ -284,7 +262,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             this.FOutTexture[0].Dispose(context);
             this.FOutDepthTexture[0].Dispose(context);

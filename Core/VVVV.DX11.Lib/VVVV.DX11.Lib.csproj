@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(SolutionDir)\vvvv.DX11.Build.targets" />
+  <Import Project="$(SolutionDir)\SharpDX.References.targets" />
   <PropertyGroup>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
@@ -12,6 +13,25 @@
     <OutputPath>$(OutputPath)\core\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="SharpDX">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\mixed\SharpDX.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct2D1">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\mixed\SharpDX.Direct2D1.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.DXGI">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\mixed\SharpDX.DXGI.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct3D11">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\mixed\SharpDX.Direct3D11.dll</HintPath>
+    </Reference>
+    <Reference Include="AssimpNet">
+      <HintPath>$(SolutionDir)\Dependencies\$(Platform)\AssimpNet.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -42,6 +62,11 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="BaseNodes\ReadBackStructNode.cs" />
+    <Compile Include="Devices\Allocators\DX11PooledAdapterDeviceManager.cs" />
+    <Compile Include="Devices\Allocators\DX11AllAdapterDeviceManager.cs" />
+    <Compile Include="Devices\Allocators\DX11AutoAdapterDeviceManager.cs" />
+    <Compile Include="Devices\Allocators\DX11PerMonitorDeviceManager.cs" />
+    <Compile Include="Devices\Allocators\DX11PerAdapterDeviceManager.cs" />
     <Compile Include="Devices\DX11DeviceAllocator.cs" />
     <Compile Include="Devices\DX11DeviceManager.cs" />
     <Compile Include="Devices\DX11DisplayManager.cs" />
@@ -53,6 +78,7 @@
     <Compile Include="Effects\DX11ShaderData.cs" />
     <Compile Include="Effects\DX11ShaderInclude.cs" />
     <Compile Include="Effects\DX11ShaderNode.cs" />
+    <Compile Include="Effects\DX11ShaderVariableCache.cs" />
     <Compile Include="Effects\DX11ShaderVariableManager.cs" />
     <Compile Include="Effects\DX11StreamOutShaderNode.cs" />
     <Compile Include="Effects\EffectVariableExtensions.cs" />
@@ -71,10 +97,13 @@
     <Compile Include="Effects\Pins\RenderSemantics\GeometryRenderVariable.cs" />
     <Compile Include="Effects\Pins\RenderSemantics\GlobalRenderVariables.cs" />
     <Compile Include="Effects\Pins\RenderSemantics\ViewProjRenderVariables.cs" />
+    <Compile Include="Effects\Pins\RenderSemantics\WorldLayerRenderVariables.cs" />
     <Compile Include="Effects\Pins\RenderSemantics\WorldRenderVariables.cs" />
     <Compile Include="Effects\Pins\ResourceShaderPin.cs" />
     <Compile Include="Effects\Pins\Resources\BuffersShaderPins.cs" />
     <Compile Include="Effects\Pins\Resources\SamplerShaderPin.cs" />
+    <Compile Include="Effects\Pins\Resources\Texture3dShaderPin.cs" />
+    <Compile Include="Effects\Pins\Resources\Texture2dShaderPin.cs" />
     <Compile Include="Effects\Pins\Resources\TextureArrayShaderPin.cs" />
     <Compile Include="Effects\Pins\Resources\TextureShaderPin.cs" />
     <Compile Include="Effects\Pins\Standard\BoolShaderPin.cs" />
@@ -104,8 +133,11 @@
     <Compile Include="RenderGraph\Model\DX11InputPin.cs" />
     <Compile Include="RenderGraph\Model\DX11Link.cs" />
     <Compile Include="RenderGraph\Model\DX11Node.cs" />
+    <Compile Include="RenderGraph\Model\DX11NodeInterfaces.cs" />
     <Compile Include="RenderGraph\Model\DX11OutputPin.cs" />
     <Compile Include="RenderGraph\Model\DX11Pin.cs" />
+    <Compile Include="RenderGraph\Model\DX11VirtualConnection.cs" />
+    <Compile Include="RenderGraph\Pins\DX11SingleResourceConnectionHandler.cs" />
     <Compile Include="RenderGraph\Pins\DX11ResourceConnectionHandler.cs" />
     <Compile Include="RenderGraph\Pins\DX11ResourceInputPin.cs" />
     <Compile Include="RenderGraph\Pins\DX11ResourceOutputPin.cs" />
@@ -116,6 +148,8 @@
     <Compile Include="Rendering\Settings\DX11CustomRenderSemantics.cs" />
     <Compile Include="Rendering\Settings\DX11RenderSemantic.cs" />
     <Compile Include="Rendering\Settings\DX11RenderSpace.cs" />
+    <Compile Include="Rendering\ShaderPipelineState.cs" />
+    <Compile Include="Rendering\Validators\DX11RemoveSliceValidator.cs" />
     <Compile Include="Rendering\Validators\DX11ViewportValidator.cs" />
     <Compile Include="Rendering\Validators\DX11FrustrumValidator.cs" />
     <Compile Include="Rendering\Validators\DX11SelectValidator.cs" />
@@ -123,7 +157,9 @@
     <Compile Include="Rendering\Validators\DX11SliceValidator.cs" />
     <Compile Include="Rendering\Validators\DX11SliceValidatorSpreaded.cs" />
     <Compile Include="Rendering\ViewPortManager.cs" />
+    <Compile Include="Utils\DirectWriteFontUtils.cs" />
     <Compile Include="Utils\InputLayoutFactory.cs" />
+    <Compile Include="Utils\SpreadUtils.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\FeralTic\Core\FeralTic.csproj">
@@ -136,6 +172,15 @@
       <Name>VVVV.DX11.Core</Name>
       <Private>False</Private>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\Dependencies\x64\Assimp64.dll">
+      <Link>Assimp64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Dependencies\x86\Assimp32.dll">
+      <Link>Assimp32.dll</Link>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

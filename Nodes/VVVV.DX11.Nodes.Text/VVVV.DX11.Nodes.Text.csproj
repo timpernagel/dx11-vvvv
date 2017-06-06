@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <Import Project="$(SolutionDir)\vvvv.DX11.Build.targets" />
+  <Import Project="$(SolutionDir)\SharpDX.References.targets" />
+  <PropertyGroup>
+    <ProjectGuid>{597DA607-77EA-4009-9EA0-DB96F71F8077}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>VVVV.DX11.Nodes.Text</RootNamespace>
+    <AssemblyName>VVVV.DX11.Nodes.Text</AssemblyName>
+    <OutputPath>$(OutputPath)\nodes\plugins\text</OutputPath>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="SharpFontWrapper">
+      <HintPath>..\..\Dependencies\mixed\FontWrapper\SharpFontWrapper.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\VVVV.DX11.Core\VVVV.DX11.Core.csproj">
+      <Project>{71C0786D-2640-4E39-AA7B-83602F36F3A3}</Project>
+      <Name>VVVV.DX11.Core</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Core\VVVV.DX11.Lib\VVVV.DX11.Lib.csproj">
+      <Project>{C6EE17BB-1F48-44EA-8131-D299BC57748C}</Project>
+      <Name>VVVV.DX11.Lib</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\FeralTic\Core\FeralTic.csproj">
+      <Project>{9EAD0F44-E6AA-4363-BE4D-D944C1D35044}</Project>
+      <Name>FeralTic</Name>
+      <Private>False</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Lib\ColorStyler.cs" />
+    <Compile Include="Lib\FontWrapperFactory.cs" />
+    <Compile Include="Lib\TextFontRenderer.cs" />
+    <Compile Include="Nodes\ColorStylerNode.cs" />
+    <Compile Include="Nodes\DX11TextLayerCacheNode.cs" />
+    <Compile Include="Nodes\DX11TextLayerAdvancedNode.cs" />
+    <Compile Include="Nodes\DX11TextLayerNode.cs" />
+    <Compile Include="Nodes\DX11TextSettingsNode.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\Dependencies\mixed\FontWrapper\FW1FontWrapper_x64.dll">
+      <Link>FW1FontWrapper_x64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Dependencies\mixed\FontWrapper\FW1FontWrapper_x86.dll">
+      <Link>FW1FontWrapper_x86.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

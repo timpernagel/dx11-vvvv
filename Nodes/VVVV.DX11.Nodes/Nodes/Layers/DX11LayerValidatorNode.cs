@@ -12,9 +12,9 @@ using FeralTic.DX11;
 namespace VVVV.DX11.Nodes.Layers
 {
     [PluginInfo(Name="Validator",Category="DX11.Layer",Version="", Author="vux")]
-    public class DX11LayerValidatorNode : IPluginEvaluate, IDX11LayerProvider, IDX11UpdateBlocker
+    public class DX11LayerValidatorNode : IPluginEvaluate, IDX11LayerHost
     {
-        [Input("Layer In", AutoValidate = false)]
+        [Input("Layer In")]
         protected Pin<DX11Resource<DX11Layer>> FLayerIn;
 
         [Input("Validators", Order = 5001)]
@@ -29,17 +29,12 @@ namespace VVVV.DX11.Nodes.Layers
         public void Evaluate(int SpreadMax)
         {
             if (this.FOutLayer[0] == null) { this.FOutLayer[0] = new DX11Resource<DX11Layer>(); }
-
-            if (this.FEnabled[0])
-            {
-                this.FLayerIn.Sync();
-            }
         }
 
 
         #region IDX11ResourceProvider Members
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (!this.FOutLayer[0].Contains(context))
             {
@@ -48,17 +43,17 @@ namespace VVVV.DX11.Nodes.Layers
             }
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             this.FOutLayer[0].Dispose(context);
         }
 
-        public void Render(IPluginIO pin, DX11RenderContext context, DX11RenderSettings settings)
+        public void Render(DX11RenderContext context, DX11RenderSettings settings)
         {
             if (this.FEnabled[0])
             {
                 List<IDX11ObjectValidator> valids = new List<IDX11ObjectValidator>();
-                if (this.FInVal.PluginIO.IsConnected)
+                if (this.FInVal.IsConnected)
                 {
                     for (int i = 0; i < this.FInVal.SliceCount; i++)
                     {
@@ -74,24 +69,25 @@ namespace VVVV.DX11.Nodes.Layers
                     }
                 }
 
-                if (this.FLayerIn.PluginIO.IsConnected)
+                if (this.FLayerIn.IsConnected)
                 {
-                    this.FLayerIn[0][context].Render(this.FLayerIn.PluginIO, context, settings);
+                    this.FLayerIn.RenderAll(context, settings);
                 }
 
                 foreach (IDX11ObjectValidator v in valids)
                 {
                     settings.ObjectValidators.Remove(v);
                 }
-
+            }
+            else
+            {
+                if (this.FLayerIn.IsConnected)
+                {
+                    this.FLayerIn.RenderAll(context, settings);
+                }
             }
         }
 
         #endregion
-
-        public bool Enabled
-        {
-            get { return this.FEnabled[0]; }
-        }
     }
 }

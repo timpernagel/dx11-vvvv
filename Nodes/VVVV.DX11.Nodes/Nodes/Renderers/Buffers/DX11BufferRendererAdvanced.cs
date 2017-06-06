@@ -5,17 +5,9 @@ using System.Text;
 using VVVV.PluginInterfaces.V2;
 using VVVV.PluginInterfaces.V1;
 using SlimDX;
-using VVVV.Utils.VMath;
-
-using VVVV.DX11.Lib.Devices;
 using SlimDX.Direct3D11;
 using System.ComponentModel.Composition;
-using VVVV.Hosting.Pins;
-using VVVV.DX11.Internals.Helpers;
-using VVVV.DX11.Internals;
-using VVVV.DX11.Internals.Effects;
 
-using VVVV.DX11.Lib.Rendering;
 using FeralTic.DX11.Queries;
 using FeralTic.DX11.Resources;
 using FeralTic.DX11;
@@ -24,11 +16,11 @@ using System.IO;
 namespace VVVV.DX11.Nodes
 {
     [PluginInfo(Name = "Renderer", Category = "DX11", Version = "Buffer Advanced", Author = "vux", AutoEvaluate = false)]
-    public class DX11AdvancedBufferRendererNode : IPluginEvaluate, IDX11RendererProvider, IDisposable, IDX11Queryable
+    public class DX11AdvancedBufferRendererNode : IPluginEvaluate, IDX11RendererHost, IDisposable, IDX11Queryable
     {
         protected IPluginHost FHost;
 
-        [Input("Layer", Order = 1, IsSingle = true)]
+        [Input("Layer", Order = 1)]
         protected Pin<DX11Resource<DX11Layer>> FInLayer;
 
         [Input("Element Count", Order = 8, DefaultValue = 512)]
@@ -118,7 +110,7 @@ namespace VVVV.DX11.Nodes
             //Just in case
             if (!this.updateddevices.Contains(context))
             {
-                this.Update(null, context);
+                this.Update(context);
             }
 
 
@@ -161,12 +153,9 @@ namespace VVVV.DX11.Nodes
                         settings.ResetCounter = false;
                     }
 
-                   // this.rwbuffersemantic.Data = this.FOutBuffers[0][context];
+                    // this.rwbuffersemantic.Data = this.FOutBuffers[0][context];
 
-                    for (int j = 0; j < this.FInLayer.SliceCount; j++)
-                    {
-                        this.FInLayer[j][context].Render(this.FInLayer.PluginIO, context, settings);
-                    }
+                    this.FInLayer.RenderAll(context, settings);
                 }
 
                 if (this.EndQuery != null)
@@ -176,7 +165,7 @@ namespace VVVV.DX11.Nodes
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.updateddevices.Contains(context)) { return; }
             if (reset || !this.FOutBuffers[0].Contains(context))
@@ -193,7 +182,7 @@ namespace VVVV.DX11.Nodes
             this.updateddevices.Add(context);
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext OnDevice, bool force)
+        public void Destroy(DX11RenderContext OnDevice, bool force)
         {
             //this.DisposeBuffers(OnDevice.Device);
         }
@@ -210,10 +199,7 @@ namespace VVVV.DX11.Nodes
 
         public void Dispose()
         {
-            for (int i = 0; i < this.FOutBuffers.SliceCount; i++)
-            {
-                if (this.FOutBuffers[i] != null) { this.FOutBuffers[i].Dispose(); }
-            }
+            this.FOutBuffers.SafeDisposeAll();
         }
     }
 }

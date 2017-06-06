@@ -13,10 +13,10 @@ namespace VVVV.Bullet.Nodes.Bodies.Interactions.Vehicle
         Help = "Drives Bullet Vehicle", AutoEvaluate = true)]
     public class BulletSteerVehicleNode : AbstractBodyInteractionNode<RaycastVehicle>
     {
-        [Input("Steering")]
+        [Input("Steering", Order =10)]
         protected ISpread<float> FSteer;
 
-        [Input("Steering Wheel Index")]
+        [Input("Wheel Index", Order = 11)]
         protected ISpread<int> FSteerWheel;
 
         protected override void ProcessObject(RaycastVehicle obj, int slice)
@@ -29,10 +29,10 @@ namespace VVVV.Bullet.Nodes.Bodies.Interactions.Vehicle
     Help = "Drives Bullet Vehicle", AutoEvaluate = true)]
     public class BulletBrakeVehicleNode : AbstractBodyInteractionNode<RaycastVehicle>
     {
-        [Input("Brake Force")]
+        [Input("Brake Force", Order = 10)]
         protected ISpread<float> FBrakeForce;
 
-        [Input("Brake Force Wheel Index")]
+        [Input("Wheel Index", Order = 11)]
         protected ISpread<int> FBrakeForceWheel;
 
         protected override void ProcessObject(RaycastVehicle obj, int slice)
@@ -45,15 +45,44 @@ namespace VVVV.Bullet.Nodes.Bodies.Interactions.Vehicle
     Help = "Drives Bullet Vehicle", AutoEvaluate = true)]
     public class BulletEngineForceVehicleNode : AbstractBodyInteractionNode<RaycastVehicle>
     {
-        [Input("Engine Force")]
+        [Input("Engine Force", Order = 10)]
         protected ISpread<float> FEngineForce;
 
-        [Input("Engine Force Wheel Index")]
+        [Input("Wheel Index", Order = 11)]
         protected ISpread<int> FEngineForceWheel;
 
         protected override void ProcessObject(RaycastVehicle obj, int slice)
         {
             obj.ApplyEngineForce(this.FEngineForce[slice], VMath.Zmod(this.FEngineForceWheel[slice], obj.NumWheels));
+        }
+    }
+
+    [PluginInfo(Name = "Info", Category = "Bullet", Version = "Vehicle", Author = "vux",
+Help = "Info about bullet vehicle", AutoEvaluate = true)]
+    public class BulletGetVehicleData : IPluginEvaluate
+    {
+        [Input("Input", Order = 10)]
+        protected Pin<RaycastVehicle> input;
+
+        [Output("Speed")]
+        protected ISpread<float> speed;
+
+        public void Evaluate(int SpreadMax)
+        {
+            if (this.input.IsConnected)
+            {
+                this.speed.SliceCount = input.SliceCount;
+                for (int i = 0; i < SpreadMax; i++)
+                {
+                    var v = this.input[i];
+                    this.speed[i] = v.CurrentSpeedKmHour;
+                }
+            }
+            else
+            {
+                this.speed.SliceCount = 0;
+            }
+ 
         }
     }
 }

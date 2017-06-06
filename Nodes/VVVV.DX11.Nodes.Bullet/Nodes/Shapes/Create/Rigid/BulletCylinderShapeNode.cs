@@ -6,40 +6,34 @@ using System.Text;
 using VVVV.PluginInterfaces.V2;
 
 using VVVV.DataTypes.Bullet;
-
+using FeralTic;
 
 namespace VVVV.Nodes.Bullet
 {
 	[PluginInfo(Name="Cylinder",Category="Bullet",Author="vux")]
-	public class BulletCylinderShapeNode : AbstractBulletRigidShapeNode
-	{
+	public class BulletCylinderShapeNode : AbstractBulletRigidDynamicShapeNode
+    {
 		[Input("Radius", DefaultValue = 0.5)]
         protected IDiffSpread<float> FRadius;
 		
 		[Input("Length", DefaultValue = 1.0)]
         protected IDiffSpread<float> FLength;
 
-		[Input("Resolution X", DefaultValue = 10)]
-        protected IDiffSpread<int> FResX;
+        [Input("Axis", DefaultEnumEntry = "Y")]
+        protected IDiffSpread<Axis> FAxis;
 
-		[Input("Resolution Y", DefaultValue = 10)]
-        protected IDiffSpread<int> FResY;
-
-
-		public override void Evaluate(int SpreadMax)
+        public override void Evaluate(int SpreadMax)
 		{
 			if (this.BasePinsChanged
 				|| this.FRadius.IsChanged
 				|| this.FLength.IsChanged
-				|| this.FResX.IsChanged
-				|| this.FResY.IsChanged
-				)
+                || this.FAxis.IsChanged)
 			{
 				this.FShapes.SliceCount = SpreadMax;
 
 				for (int i = 0; i < SpreadMax; i++)
 				{
-					CylinderShapeDefinition cyl = new CylinderShapeDefinition(Math.Abs(this.FRadius[i]), Math.Abs(this.FRadius[i]), Math.Abs(this.FLength[i]),this.FResX[i],this.FResY[i]);
+                    CylinderShapeDefinition cyl = new CylinderShapeDefinition(Math.Abs(this.FRadius[i]), Math.Abs(this.FLength[i]), FAxis[i]);
 					cyl.Mass = this.FMass[i];
 					this.SetBaseParams(cyl, i);
 					this.FShapes[i] = cyl;

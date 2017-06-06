@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>VVVV.DX11.Nodes.Assimp</RootNamespace>
     <AssemblyName>VVVV.DX11.Nodes.Assimp</AssemblyName>
-    <OutputPath>$(OutputPath)\nodes\plugins\</OutputPath>
+    <OutputPath>$(OutputPath)\nodes\plugins\assimp</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -23,27 +23,26 @@
     <Reference Include="System.Xml" />
     <Reference Include="AssimpNet">
       <HintPath>$(SolutionDir)\Dependencies\$(Platform)\AssimpNet.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="VVVV.Utils3rdParty">
-      <HintPath>..\..\Dependencies\x86\VVVV.Utils3rdParty.dll</HintPath>
+      <HintPath>..\..\Dependencies\$(Platform)\VVVV.Utils3rdParty.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssimpAnimationNode.cs" />
-    <Compile Include="AssimpAnimationTreeBufferNode.cs" />
     <Compile Include="AssimpBoneWrapper.cs" />
     <Compile Include="AssimpCameraTransformNode.cs" />
     <Compile Include="AssimpChannelAnimNode.cs" />
+    <Compile Include="AssimpChannelInfoNode.cs" />
     <Compile Include="AssimpChannelsNode.cs" />
     <Compile Include="AssimpMaterialNode.cs" />
-    <Compile Include="AssimpMergeLoaderNode.cs" />
     <Compile Include="AssimpMeshInfoNode.cs" />
     <Compile Include="AssimpMeshMergeNode.cs" />
+    <Compile Include="AssimpMeshSplitNode.cs" />
     <Compile Include="AssimpMeshNode.cs" />
-    <Compile Include="AssimpSceneExplorerNode.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
+    <Compile Include="AssimpSceneExplorerNode.cs" />
     <Compile Include="AssimpSceneExplorerNode.Designer.cs">
       <DependentUpon>AssimpSceneExplorerNode.cs</DependentUpon>
     </Compile>
@@ -51,6 +50,7 @@
     <Compile Include="AssimpSimpleLoaderNode.cs" />
     <Compile Include="AssimpSimpleLoaderStructuredNode.cs" />
     <Compile Include="AssimpSkeletonNode.cs" />
+    <Compile Include="AssimpParentNode.cs" />
     <Compile Include="AssimpWorldNode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

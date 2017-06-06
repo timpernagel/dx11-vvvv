@@ -13,8 +13,7 @@ using VVVV.Internals.Bullet;
 
 
 using BulletSharp;
-
-
+using VVVV.Bullet.Core;
 
 namespace VVVV.Nodes.Bullet
 {
@@ -29,7 +28,7 @@ namespace VVVV.Nodes.Bullet
 		[Input("Position")]
         protected ISpread<Vector3D> FPosition;
 
-		[Input("Rotation")]
+		[Input("Rotation", DefaultValues = new double[] { 0, 0, 0 ,1})]
         protected ISpread<Vector4D> FRotation;
 
 		[Input("Linear Velocity")]
@@ -62,10 +61,7 @@ namespace VVVV.Nodes.Bullet
 		[Input("Custom")]
         protected ISpread<string> FCustom;
 
-		[Input("Custom Object")]
-        protected Pin<ICloneable> FCustomObj;
-
-		[Input("Do Create", IsBang = true)]
+		[Input("Do Create", IsBang = true, Order =1000)]
         protected ISpread<bool> FDoCreate;
 
 		protected virtual void OnWorldConnected() { }
@@ -123,21 +119,11 @@ namespace VVVV.Nodes.Bullet
 				if (this.FKinematic[i]) { body.CollisionFlags |= CollisionFlags.KinematicObject; }
 				if (this.FStatic[i]) { body.CollisionFlags |= CollisionFlags.StaticObject; }
 
-				BodyCustomData bd = new BodyCustomData();
+				BodyCustomData bd = new BodyCustomData(this.FWorld[0].GetNewBodyId());
 
 				body.UserObject = bd;
-				bd.Id = this.FWorld[0].GetNewBodyId();
 				bd.Custom = this.FCustom[i];
 				
-				if (this.FCustomObj.PluginIO.IsConnected)
-				{
-					bd.CustomObject = (ICloneable)this.FCustomObj[i].Clone();
-				}
-				else
-				{
-					bd.CustomObject = null;
-				}
-
 				this.FWorld[0].Register(body);
 				id = bd.Id;
 				return body;

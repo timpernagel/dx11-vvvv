@@ -8,26 +8,22 @@ using VVVV.PluginInterfaces.V1;
 using SlimDX;
 using VVVV.Utils.VMath;
 
-using VVVV.DX11.Lib.Devices;
 using SlimDX.Direct3D11;
 using System.ComponentModel.Composition;
-using VVVV.Hosting.Pins;
-using VVVV.DX11.Internals.Helpers;
-using VVVV.DX11.Internals;
-using VVVV.DX11.Lib.Rendering;
-
 using FeralTic.DX11;
 using FeralTic.DX11.Queries;
 using FeralTic.DX11.Resources;
+using VVVV.DX11.Lib;
+using VVVV.DX11.Internals.Helpers;
 
 namespace VVVV.DX11.Nodes.Renderers.Graphics
 {
     [PluginInfo(Name = "Renderer", Category = "DX11", Version = "Volume", Author = "vux", AutoEvaluate = false)]
-    public class DX11VolumeRendererNode : IPluginEvaluate, IDX11RendererProvider, IDisposable, IDX11Queryable
+    public class DX11VolumeRendererNode : IPluginEvaluate, IDX11RendererHost, IDisposable, IDX11Queryable
     {
         protected IPluginHost FHost;
 
-        [Input("Layer", Order = 1, IsSingle = true)]
+        [Input("Layer", Order = 1)]
         protected Pin<DX11Resource<DX11Layer>> FInLayer;
 
         [Input("Texture Size", Order = 5, DefaultValues = new double[] { 32, 32,8 })]
@@ -122,7 +118,7 @@ namespace VVVV.DX11.Nodes.Renderers.Graphics
             //Just in case
             if (!this.updateddevices.Contains(context))
             {
-                this.Update(null, context);
+                this.Update(context);
             }
 
             if (!this.FInLayer.PluginIO.IsConnected) { return; }
@@ -169,10 +165,7 @@ namespace VVVV.DX11.Nodes.Renderers.Graphics
                     settings.CustomSemantics.Clear();
                     settings.ResourceSemantics.Clear();
 
-                    for (int j = 0; j < this.FInLayer.SliceCount; j++)
-                    {
-                        this.FInLayer[j][context].Render(this.FInLayer.PluginIO, context, settings);
-                    }
+                    this.FInLayer.RenderAll(context, settings);
                 }
 
                 if (this.FInBindTarget[0])
@@ -187,7 +180,7 @@ namespace VVVV.DX11.Nodes.Renderers.Graphics
             }
         }
 
-        public void Update(IPluginIO pin, DX11RenderContext context)
+        public void Update(DX11RenderContext context)
         {
             if (this.updateddevices.Contains(context)) { return; }
 
@@ -203,7 +196,7 @@ namespace VVVV.DX11.Nodes.Renderers.Graphics
             this.updateddevices.Add(context);
         }
 
-        public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+        public void Destroy(DX11RenderContext context, bool force)
         {
             this.DisposeBuffers(context);    
         }
@@ -220,10 +213,7 @@ namespace VVVV.DX11.Nodes.Renderers.Graphics
 
         public void Dispose()
         {
-            for (int i = 0; i < this.FOutBuffers.SliceCount; i++)
-            {
-                this.FOutBuffers[i].Dispose();
-            }
+            this.FOutBuffers.SafeDisposeAll();
         }
     }
 }

@@ -9,8 +9,7 @@ using VVVV.DataTypes.Bullet;
 using VVVV.Internals.Bullet;
 
 using BulletSharp.SoftBody;
-
-
+using VVVV.Bullet.Core;
 
 namespace VVVV.Nodes.Bullet
 {
@@ -19,7 +18,7 @@ namespace VVVV.Nodes.Bullet
 	public class BulletCreateSoftBodyNode : IPluginEvaluate
 	{
 		[Input("World", IsSingle = true)]
-        protected Pin<BulletRigidSoftWorld> FWorld;
+        protected Pin<BulletSoftWorldContainer> FWorld;
 
 		[Input("Shapes")]
         protected Pin<AbstractSoftShapeDefinition> FShapes;
@@ -42,11 +41,6 @@ namespace VVVV.Nodes.Bullet
 
 		[Input("Custom")]
         protected ISpread<string> FCustom;
-
-		[Input("Custom Object")]
-        protected Pin<ICloneable> FCustomObj;
-
-
 
 		[Input("Do Create", IsBang = true)]
         protected ISpread<bool> FDoCreate;
@@ -74,25 +68,13 @@ namespace VVVV.Nodes.Bullet
 						body.Friction = this.FFriction[i];
 						body.Restitution = this.FRestitution[i];
 
-						SoftBodyCustomData bd = new SoftBodyCustomData();
-						bd.Id = this.FWorld[0].GetNewBodyId();
+						SoftBodyCustomData bd = new SoftBodyCustomData(this.FWorld[0].GetNewBodyId());
 						bd.Custom = this.FCustom[i];
 						bd.HasUV = shapedef.HasUV;
 						bd.UV = shapedef.GetUV(body);
 						body.UserObject = bd;
 
-						
-						if (this.FCustomObj.PluginIO.IsConnected)
-						{
-							bd.CustomObject = (ICloneable)this.FCustomObj[i].Clone();
-						}
-						else
-						{
-							bd.CustomObject = null;
-						}
-
-
-
+				
 						this.FWorld[0].Register(body);
 						bodies.Add(body);
 					}
