@@ -51,6 +51,10 @@ namespace VVVV.Bullet.Core
             {
                 rigidBody.ActivationState = ActivationState.DisableDeactivation;
             }
+            if (motionProperties.IsAwake == false)
+            {
+                rigidBody.ActivationState = (ActivationState)0;
+            }
         }
 
         public static Tuple<RigidBody, int> CreateRigidBody(this IRigidBodyContainer world, CollisionShape collisionShape, ref RigidBodyPose initialPose, ref RigidBodyProperties bodyProperties, ref BulletSharp.Vector3 localInertia, float mass)
@@ -77,6 +81,43 @@ namespace VVVV.Bullet.Core
             ConstraintCustomData cd = new ConstraintCustomData(world.GetNewConstraintId());
             typedConstraint.UserObject = cd;
             world.Register(typedConstraint);
+        }
+
+        public static void DeleteAndDisposeBody(this DynamicsWorld world, RigidBody body)
+        {
+            world.RemoveRigidBody(body);
+            body.UserObject = null;
+            if (body.MotionState != null)
+            {
+                body.MotionState.Dispose();
+            }
+            body.Dispose();
+        }
+
+        public static void DeleteAndDisposeConstraint(this DynamicsWorld world, TypedConstraint constraint)
+        {
+            world.RemoveConstraint(constraint);
+            constraint.UserObject = null;
+            constraint.Dispose();
+        }
+
+        public static void DeleteAndDisposeAllConstraints(this DynamicsWorld world)
+        {
+            for (int i = 0; i < world.NumConstraints; i++)
+            {
+                TypedConstraint constraint = world.GetConstraint(i);
+                world.DeleteAndDisposeConstraint(constraint);
+            }
+        }
+
+        public static void DeleteAndDisposeAllRigidBodies(this DynamicsWorld world)
+        {
+            for (int i = 0; i < world.NumCollisionObjects; i++)
+            {
+                CollisionObject obj = world.CollisionObjectArray[i];
+                RigidBody body = obj as RigidBody;
+                world.DeleteAndDisposeBody(body);
+            }
         }
     }
 }

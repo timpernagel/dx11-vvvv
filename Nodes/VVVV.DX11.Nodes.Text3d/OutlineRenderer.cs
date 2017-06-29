@@ -11,11 +11,13 @@ using D2DGeometry = SharpDX.Direct2D1.Geometry;
 using SharpDX.DirectWrite;
 using SharpDX;
 
+using RawMat = SharpDX.Mathematics.Interop.RawMatrix3x2;
+
 
 
 namespace VVVV.DX11.Text3d
 {
-    public class OutlineRenderer : SharpDX.DirectWrite.TextRendererBase
+    public unsafe class OutlineRenderer : SharpDX.DirectWrite.TextRendererBase
     {
         private readonly D2DFactory factory;
         private SharpDX.Direct2D1.Geometry geometry = null;
@@ -33,27 +35,26 @@ namespace VVVV.DX11.Text3d
                 if (clientDrawingEffect is SharpDX.Direct2D1.SolidColorBrush)
                 {
                     var sb = (SharpDX.Direct2D1.SolidColorBrush)clientDrawingEffect;
-                    c = sb.Color;
+                    SharpDX.Mathematics.Interop.RawColor4 brushColor = sb.Color;
+                    c = *(Color4*)&brushColor;
                 }
             }
 
             if (glyphRun.Indices.Length > 0)
             {
-                PathGeometry pg = new PathGeometry(this.factory);
+                using (PathGeometry pg = new PathGeometry(this.factory))
+                {
+                    using (GeometrySink sink = pg.Open())
+                    {
+                        glyphRun.FontFace.GetGlyphRunOutline(glyphRun.FontSize, glyphRun.Indices, glyphRun.Advances, glyphRun.Offsets, glyphRun.IsSideways, glyphRun.BidiLevel % 2 == 1, sink as SimplifiedGeometrySink);
+                        sink.Close();
 
-                GeometrySink sink = pg.Open();
 
-                glyphRun.FontFace.GetGlyphRunOutline(glyphRun.FontSize, glyphRun.Indices, glyphRun.Advances, glyphRun.Offsets, glyphRun.IsSideways, glyphRun.BidiLevel % 2 == 1, sink as SimplifiedGeometrySink);
-                sink.Close();
-
-                TransformedGeometry tg = new TransformedGeometry(this.factory, pg, Matrix3x2.Translation(baselineOriginX, baselineOriginY) * Matrix3x2.Scaling(1.0f, -1.0f));
-
-                pg.Dispose();
-
-                //Transform from baseline
-
-                this.AddGeometry(tg);
-
+                        Matrix3x2 mat = Matrix3x2.Translation(baselineOriginX, baselineOriginY) * Matrix3x2.Scaling(1.0f, -1.0f);
+                        TransformedGeometry tg = new TransformedGeometry(this.factory, pg, *(RawMat*)&mat);
+                        this.AddGeometry(tg);
+                    }
+                }
                 return SharpDX.Result.Ok;
             }
             else
@@ -65,56 +66,67 @@ namespace VVVV.DX11.Text3d
 
         public override Result DrawUnderline(object clientDrawingContext, float baselineOriginX, float baselineOriginY, ref Underline underline, ComObject clientDrawingEffect)
         {
-            PathGeometry pg = new PathGeometry(this.factory);
-            GeometrySink sink = pg.Open();
+            using (PathGeometry pg = new PathGeometry(this.factory))
+            {
+                using (GeometrySink sink = pg.Open())
+                {
+                    Vector2 topLeft = new Vector2(0.0f, underline.Offset);
+                    sink.BeginFigure(topLeft, FigureBegin.Filled);
+                    topLeft.X += underline.Width;
+                    sink.AddLine(topLeft);
+                    topLeft.Y += underline.Thickness;
+                    sink.AddLine(topLeft);
+                    topLeft.X -= underline.Width;
+                    sink.AddLine(topLeft);
+                    sink.EndFigure(FigureEnd.Closed);
+                    sink.Close();
 
-            Vector2 topLeft = new Vector2(0.0f, underline.Offset);
-            sink.BeginFigure(topLeft, FigureBegin.Filled);
-            topLeft.X += underline.Width;
-            sink.AddLine(topLeft);
-            topLeft.Y += underline.Thickness;
-            sink.AddLine(topLeft);
-            topLeft.X -= underline.Width;
-            sink.AddLine(topLeft);
-            sink.EndFigure(FigureEnd.Closed);
-            sink.Close();
+                    Matrix3x2 mat = Matrix3x2.Translation(baselineOriginX, baselineOriginY) * Matrix3x2.Scaling(1.0f, -1.0f);
+                    TransformedGeometry tg = new TransformedGeometry(this.factory, pg, *(RawMat*)&mat);
 
-
-            TransformedGeometry tg = new TransformedGeometry(this.factory, pg, Matrix3x2.Translation(baselineOriginX, baselineOriginY) * Matrix3x2.Scaling(1.0f, -1.0f));
-            pg.Dispose();
-
-            this.AddGeometry(tg);
-            return Result.Ok;
+                    this.AddGeometry(tg);
+                    return Result.Ok;
+                }
+            }
         }
 
         public override Result DrawStrikethrough(object clientDrawingContext, float baselineOriginX, float baselineOriginY, ref Strikethrough strikethrough, ComObject clientDrawingEffect)
         {
-            PathGeometry pg = new PathGeometry(this.factory);
-            GeometrySink sink = pg.Open();
+            using (PathGeometry pg = new PathGeometry(this.factory))
+            {
+                using (GeometrySink sink = pg.Open())
+                {
+                    Vector2 topLeft = new Vector2(0.0f, strikethrough.Offset);
+                    sink.BeginFigure(topLeft, FigureBegin.Filled);
+                    topLeft.X += strikethrough.Width;
+                    sink.AddLine(topLeft);
+                    topLeft.Y += strikethrough.Thickness;
+                    sink.AddLine(topLeft);
+                    topLeft.X -= strikethrough.Width;
+                    sink.AddLine(topLeft);
+                    sink.EndFigure(FigureEnd.Closed);
+                    sink.Close();
 
-            Vector2 topLeft = new Vector2(0.0f, strikethrough.Offset);
-            sink.BeginFigure(topLeft, FigureBegin.Filled);
-            topLeft.X += strikethrough.Width;
-            sink.AddLine(topLeft);
-            topLeft.Y += strikethrough.Thickness;
-            sink.AddLine(topLeft);
-            topLeft.X -= strikethrough.Width;
-            sink.AddLine(topLeft);
-            sink.EndFigure(FigureEnd.Closed);
-            sink.Close();
+                    Matrix3x2 mat = Matrix3x2.Translation(baselineOriginX, baselineOriginY) * Matrix3x2.Scaling(1.0f, -1.0f);
+                    TransformedGeometry tg = new TransformedGeometry(this.factory, pg, *(RawMat*)&mat);
 
-
-            TransformedGeometry tg = new TransformedGeometry(this.factory, pg, Matrix3x2.Translation(baselineOriginX, baselineOriginY) * Matrix3x2.Scaling(1.0f, -1.0f));
-            pg.Dispose();
-
-            this.AddGeometry(tg);
-            return Result.Ok;
+                    this.AddGeometry(tg);
+                    return Result.Ok;
+                }
+            }
         }
-
 
         public override SharpDX.Mathematics.Interop.RawMatrix3x2 GetCurrentTransform(object clientDrawingContext)
         {
-            return SharpDX.Matrix3x2.Identity;
+            return new SharpDX.Mathematics.Interop.RawMatrix3x2()
+            {
+                M11 = 1.0f,
+                M12 = 0.0f,
+                M21 = 0.0f,
+                M22 = 1.0f,
+                M31 = 0.0f,
+                M32 = 0.0f
+            };
         }
 
         public override bool IsPixelSnappingDisabled(object clientDrawingContext)
@@ -142,13 +154,15 @@ namespace VVVV.DX11.Text3d
             {
                 PathGeometry pg = new PathGeometry(this.factory);
 
-                GeometrySink sink = pg.Open();
-
-                this.geometry.Combine(geom, CombineMode.Union, sink);
-
-                sink.Close();
-
+                using (GeometrySink sink = pg.Open())
+                {
+                    this.geometry.Combine(geom, CombineMode.Union, sink);
+                    sink.Close();
+                }
+                var oldGeom = this.geometry;
                 this.geometry = pg;
+                oldGeom.Dispose();
+
             }
         }
     }

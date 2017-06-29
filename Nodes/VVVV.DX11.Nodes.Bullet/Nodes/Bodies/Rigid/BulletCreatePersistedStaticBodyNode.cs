@@ -39,10 +39,15 @@ namespace VVVV.Nodes.Bullet
         [Output("Id")]
         protected ISpread<int> idOutput;
 
+        [Output("Created Bodies")]
+        protected ISpread<RigidBody> createdBodiesOutput;
+
         private RigidBodyListListener persistedList = new RigidBodyListListener();
+        private List<RigidBody> frameBodyOutput = new List<RigidBody>();
 
         public void Evaluate(int SpreadMax)
         {
+            this.frameBodyOutput.Clear();
             IRigidBodyContainer world = this.worldInput[0];
 
             if (world != null)
@@ -68,6 +73,7 @@ namespace VVVV.Nodes.Bullet
                             bodyCreateResult.Item1.CollisionFlags = CollisionFlags.StaticObject;
 
                             this.persistedList.Append(bodyCreateResult.Item1, bodyCreateResult.Item2);
+                            frameBodyOutput.Add(bodyCreateResult.Item1);
                         }
                     }
                 }
@@ -83,11 +89,18 @@ namespace VVVV.Nodes.Bullet
                     this.bodiesOutput[i] = bodies[i];
                     this.idOutput[i] = ids[i];
                 }
+
+                this.createdBodiesOutput.SliceCount = this.frameBodyOutput.Count;
+                for (int i = 0; i < frameBodyOutput.Count; i++)
+                {
+                    this.createdBodiesOutput[i] = frameBodyOutput[i];
+                }
             }
             else
             {
                 this.bodiesOutput.SliceCount = 0;
                 this.idOutput.SliceCount = 0;
+                this.createdBodiesOutput.SliceCount = 0;
             }
         }
     }

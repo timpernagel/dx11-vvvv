@@ -39,6 +39,7 @@ namespace VVVV.DX11.Nodes.Text
         public ISpread<DX11Resource<DX11Layer>> FOutLayer;
 
         private int spreadMax;
+        private DX11ContextElement<DX11ObjectRenderSettings> objectSettings = new DX11ContextElement<DX11ObjectRenderSettings>();
 
         [ImportingConstructor()]
         public DX11TextLayerAdvancedNode(IIOFactory factory, SlimDX.DirectWrite.Factory dwFactory)
@@ -66,6 +67,10 @@ namespace VVVV.DX11.Nodes.Text
             {
                 this.FOutLayer[0][context] = new DX11Layer();
                 this.FOutLayer[0][context].Render = this.Render;
+            }
+            if (!this.objectSettings.Contains(context))
+            {
+                this.objectSettings[context] = new DX11ObjectRenderSettings();
             }
         }
 
@@ -103,6 +108,10 @@ namespace VVVV.DX11.Nodes.Text
                 SharpDX.Matrix view = *(SharpDX.Matrix*)&sView;
                 SharpDX.Matrix projection = *(SharpDX.Matrix*)&sProj;
 
+                var objectsettings = this.objectSettings[context];
+                objectsettings.IterationCount = 1;
+                objectsettings.Geometry = null;
+
                 for (int i = 0; i < this.spreadMax; i++)
                 {
                     SharpDX.Matrix preScale = SharpDX.Matrix.Scaling(1.0f, -1.0f, 1.0f);
@@ -116,25 +125,37 @@ namespace VVVV.DX11.Nodes.Text
                     SlimDX.Color4 color = this.FInColor[i];
                     SharpDX.Color4 sdxColor = *(SharpDX.Color4*)&color;
 
-                    if (applyState)
+                    objectsettings.DrawCallIndex = i;
+                    objectsettings.WorldTransform = *(SlimDX.Matrix*)&mat;
+
+                    if (settings.ValidateObject(objectsettings))
                     {
-                        renderStates.SetStates(shaprdxContext, 0);
+                        if (applyState)
+                        {
+                            var textLayout = this.FLayout[i];
 
-                        context.RenderStateStack.Push(this.FStateIn[i]);
+                            if (textLayout != null)
+                            {
+                                renderStates.SetStates(shaprdxContext, 0);
 
-                        var textLayout = this.FLayout[i];
+                                context.RenderStateStack.Push(this.FStateIn[i]);
 
-                        fw.DrawTextLayout(shaprdxContext, new SharpDX.DirectWrite.TextLayout(textLayout.ComPointer), SharpDX.Vector2.Zero,
-                            mat, sdxColor, TextFlags.StatePrepared);
+                                fw.DrawTextLayout(shaprdxContext, new SharpDX.DirectWrite.TextLayout(textLayout.ComPointer), SharpDX.Vector2.Zero,
+                                    mat, sdxColor, TextFlags.StatePrepared);
 
-                        context.RenderStateStack.Pop();
-                    }
-                    else
-                    {
-                        var textLayout = this.FLayout[i];
+                                context.RenderStateStack.Pop();
+                            }
+                        }
+                        else
+                        {
+                            var textLayout = this.FLayout[i];
 
-                        fw.DrawTextLayout(shaprdxContext, new SharpDX.DirectWrite.TextLayout(textLayout.ComPointer), SharpDX.Vector2.Zero,
-                            mat, sdxColor, TextFlags.None);
+                            if (textLayout != null)
+                            {
+                                fw.DrawTextLayout(shaprdxContext, new SharpDX.DirectWrite.TextLayout(textLayout.ComPointer), SharpDX.Vector2.Zero,
+                                    mat, sdxColor, TextFlags.None);
+                            }
+                        }
                     }
                 }
 
