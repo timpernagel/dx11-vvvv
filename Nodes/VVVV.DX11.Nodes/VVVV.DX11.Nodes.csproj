@@ -82,6 +82,7 @@
     <Compile Include="Nodes\Textures\1D\InfoTexture1DNode.cs" />
     <Compile Include="Nodes\Textures\1D\WriterTexture1dNode.cs" />
     <Compile Include="Nodes\Textures\2D\PixelData.cs" />
+    <Compile Include="Nodes\Textures\3D\FrameDelayTextureNode.cs" />
     <Compile Include="Nodes\Textures\Array\GetSliceDepthTextureArray.cs" />
     <Compile Include="Nodes\Textures\Array\GetSliceTextureArray.cs" />
     <Compile Include="Nodes\Textures\Array\TextureArraySetSlice.cs" />
