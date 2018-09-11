@@ -119,8 +119,17 @@ namespace VVVV.DX11.Nodes
             this.spmax = SpreadMax;
             if (SpreadMax > 0)
             {
+                if (this.FOutLayer.SliceCount == 0)
+                {
+                    this.FOutLayer.SliceCount = 1;
+                }
+
                 if (this.FOutLayer[0] == null) { this.FOutLayer[0] = new DX11Resource<DX11Layer>(); }
                 if (this.FOutQueryable[0] == null) { this.FOutQueryable[0] = this; }
+            }
+            else
+            {
+                this.FOutLayer.SliceCount = 0;
             }
         }
 
@@ -153,7 +162,7 @@ namespace VVVV.DX11.Nodes
 
         public void Destroy(DX11RenderContext context, bool force)
         {
-            this.FOutLayer[0].Dispose(context);
+            this.FOutLayer.SafeDisposeAll(context);
         }
 
         private void RenderBasic(DX11RenderContext context, DX11RenderSettings settings)
@@ -172,7 +181,11 @@ namespace VVVV.DX11.Nodes
                     popstate = true;
                 }
 
-                qd.quadshader.SetBySemantic("COLOR", this.FInColor[i]);
+
+                var color = this.FInColor[i];
+                color.Alpha *= settings.LayerOpacity;
+
+                qd.quadshader.SetBySemantic("COLOR", color);
                 qd.quadshader.SetBySemantic("WORLD", this.FInWorld[i]);
                 qd.quadshader.SetBySemantic("TEXTUREMATRIX", this.FInTexTransform[i]);
 
@@ -214,7 +227,10 @@ namespace VVVV.DX11.Nodes
                     qd.samplervariable.UndoSetSamplerState(0);
                 }
 
-                qd.quadshader.SetBySemantic("COLOR", this.FInColor[i]);
+                var color = this.FInColor[i];
+                color.Alpha *= settings.LayerOpacity;
+
+                qd.quadshader.SetBySemantic("COLOR", color);
                 qd.quadshader.SetBySemantic("WORLD", this.FInWorld[i]);
                 qd.quadshader.SetBySemantic("TEXTUREMATRIX", this.FInTexTransform[i]);
 
@@ -251,6 +267,7 @@ namespace VVVV.DX11.Nodes
 
             qd.quadshader.SelectTechnique("RenderInstanced");
             qd.quadgeometry.Bind(qd.quadlayouts[2]);
+            qd.quadshader.SetBySemantic("LAYEROPACITY", settings.LayerOpacity);
 
             this.BindBuffers(context);
 
@@ -288,6 +305,7 @@ namespace VVVV.DX11.Nodes
 
             qd.quadshader.SelectTechnique("RenderInstancedTextured");
             qd.quadgeometry.Bind(qd.quadlayouts[3]);
+            qd.quadshader.SetBySemantic("LAYEROPACITY", settings.LayerOpacity);
 
             this.BindBuffers(context);
 

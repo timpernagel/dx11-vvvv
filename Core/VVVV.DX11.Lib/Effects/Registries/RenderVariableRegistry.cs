@@ -41,6 +41,7 @@ namespace VVVV.DX11.Lib.Effects.Registries
             this.RegisterType("RWTexture1D", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("RWTexture1DArray", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("RWTexture2D", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
+            this.RegisterType("RWTexture2DArray", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("RWTexture3D", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
             this.RegisterType("RWStructuredBuffer", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
 
@@ -66,6 +67,8 @@ namespace VVVV.DX11.Lib.Effects.Registries
 
             this.RegisterType("int", "VIEWPORTCOUNT", false, (var, host, factory) => new IntViewPortCountRenderVariable(var));
             this.RegisterType("int", "VIEWPORTINDEX", false, (var, host, factory) => new IntViewPortIndexRenderVariable(var));
+
+            this.RegisterType("float", "LAYEROPACITY", false, (var, host, factory) => new FloatLayerOpacityRenderVariable(var));
 
             this.RegisterType("int", "ELEMENTCOUNT", false, (var, host, factory) => new IntElemSizeRenderVariable(var));
             this.RegisterType("RWStructuredBuffer", "BACKBUFFER", false, (var, host, factory) => new RWBackBufferRenderVariable(var));
