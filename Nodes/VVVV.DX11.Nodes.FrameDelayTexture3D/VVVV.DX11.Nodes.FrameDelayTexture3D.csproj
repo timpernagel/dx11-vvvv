@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)\vvvv.DX11.Build.targets" />
+  <Import Project="$(SolutionDir)\vvvv.DX11.CoreImport.targets" />
+  <PropertyGroup>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{DB263595-91B2-4F2C-91EF-9BADE069851B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>VVVV.DX11.Nodes</RootNamespace>
+    <AssemblyName>VVVV.DX11.Nodes.FrameDelayTexture3D</AssemblyName>
+    <OutputPath>$(OutputPath)\nodes\plugins\base</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="VVVV.Nodes.Generic">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\$(Platform)\VVVV.Nodes.Generic.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Nodes\Textures\3D\FrameDelayTexture3DNode.cs" />
+    <Compile Include="Nodes\Textures\3D\DX11Texture3DOwn.cs" />
+    <Compile Include="ShaderUtils.cs" />
+    <Compile Include="IOleStuff.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>xcopy "$(SolutionDir)girlpower\nodes\plugins" "$(OutputPath)\..\" /S /R /Y /I</PostBuildEvent>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
